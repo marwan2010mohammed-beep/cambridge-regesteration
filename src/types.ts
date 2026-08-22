@@ -23,6 +23,29 @@ export interface CandidateEnrollment {
   timestamp: string;
   status: 'Pending Admin DM' | 'DM Sent' | 'Enrolled & Verified';
   adminNotes?: string;
+  webhookDelivered?: boolean;
+  webhookStatus?: 'delivered' | 'failed' | 'simulated' | 'disabled';
+  webhookError?: string;
+}
+
+export interface WebhookConfig {
+  url: string;
+  enabled: boolean;
+  notifyDesktop: boolean;
+  notifySound: boolean;
+  adminChannelName?: string;
+}
+
+export interface WebhookDispatchLog {
+  id: string;
+  candidateId: string;
+  candidateDiscord: string;
+  timestamp: string;
+  status: 'delivered' | 'failed' | 'simulated';
+  url: string;
+  responseCode?: number;
+  errorMessage?: string;
+  payloadSummary?: string;
 }
 
 export interface ScheduledExamPaper {

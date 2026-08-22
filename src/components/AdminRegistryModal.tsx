@@ -1,7 +1,49 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CandidateEnrollment, ExamSubject } from '../types';
+import { CandidateEnrollment, ExamSubject, WebhookConfig, WebhookDispatchLog } from '../types';
 import { generateStatementOfEntryPDF } from '../utils/pdfGenerator';
-import { Copy, Check, MessageSquare, Download, Trash2, Search, Lock, Unlock, ShieldCheck, Key, Eye, EyeOff, UserCheck, LogOut, AlertCircle, FileText } from 'lucide-react';
+import { generateDiscordDMTemplate, DMTemplateType, DM_TEMPLATE_OPTIONS } from '../utils/discordDmGenerator';
+import {
+  getWebhookConfig,
+  saveWebhookConfig,
+  getWebhookLogs,
+  clearWebhookLogs,
+  testDiscordWebhook,
+  dispatchDiscordWebhook,
+  requestDesktopNotificationPermission,
+  playAdminNotificationSound,
+} from '../utils/discordWebhook';
+import {
+  Copy,
+  Check,
+  MessageSquare,
+  Download,
+  Trash2,
+  Search,
+  Lock,
+  Unlock,
+  ShieldCheck,
+  Key,
+  Eye,
+  EyeOff,
+  UserCheck,
+  LogOut,
+  AlertCircle,
+  FileText,
+  Send,
+  CheckCircle2,
+  Sparkles,
+  ExternalLink,
+  Edit3,
+  Bell,
+  Volume2,
+  VolumeX,
+  Radio,
+  Settings,
+  Activity,
+  RefreshCw,
+  Zap,
+  AlertTriangle,
+} from 'lucide-react';
 
 interface AdminRegistryModalProps {
   enrollments: CandidateEnrollment[];
@@ -45,10 +87,33 @@ export function AdminRegistryModal({
   const [authError, setAuthError] = useState<string | null>(null);
   const [loginAttempts, setLoginAttempts] = useState(0);
 
+  // Tab State
+  const [activeAdminTab, setActiveAdminTab] = useState<'candidates' | 'webhooks'>('candidates');
+
   // Registry State
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedDmId, setCopiedDmId] = useState<string | null>(null);
+  const [activeDmCandidate, setActiveDmCandidate] = useState<CandidateEnrollment | null>(null);
+  const [activeDmTemplateType, setActiveDmTemplateType] = useState<DMTemplateType>('verification');
+  const [customDmText, setCustomDmText] = useState<string>('');
+  const [dmCopiedSuccess, setDmCopiedSuccess] = useState(false);
+  const [resendingWebhookId, setResendingWebhookId] = useState<string | null>(null);
+  const [resendWebhookFeedback, setResendWebhookFeedback] = useState<string | null>(null);
+
+  // Webhook Settings State
+  const [webhookConfig, setWebhookConfig] = useState<WebhookConfig>(() => getWebhookConfig());
+  const [webhookLogs, setWebhookLogs] = useState<WebhookDispatchLog[]>(() => getWebhookLogs());
+  const [testWebhookStatus, setTestWebhookStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
+  const [testWebhookMessage, setTestWebhookMessage] = useState<string>('');
+  const [isSavingWebhook, setIsSavingWebhook] = useState(false);
   const usernameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Refresh logs on open/focus
+    setWebhookLogs(getWebhookLogs());
+    setWebhookConfig(getWebhookConfig());
+  }, []);
 
   useEffect(() => {
     if (!currentUser) {
@@ -110,6 +175,62 @@ export function AdminRegistryModal({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const handleQuickCopyDM = (entry: CandidateEnrollment, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const dmText = generateDiscordDMTemplate(
+      entry,
+      'verification',
+      currentAdminProfile?.role || 'Admin Officer',
+      subjects
+    );
+    navigator.clipboard.writeText(dmText);
+    setCopiedDmId(entry.id);
+    setTimeout(() => setCopiedDmId(null), 2500);
+
+    // If candidate status is Pending Admin DM, automatically update to DM Sent
+    if (entry.status === 'Pending Admin DM') {
+      onUpdateStatus(entry.id, 'DM Sent');
+    }
+  };
+
+  const handleOpenDmModal = (entry: CandidateEnrollment, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setActiveDmCandidate(entry);
+    setActiveDmTemplateType('verification');
+    const initialText = generateDiscordDMTemplate(
+      entry,
+      'verification',
+      currentAdminProfile?.role || 'Admin Officer',
+      subjects
+    );
+    setCustomDmText(initialText);
+    setDmCopiedSuccess(false);
+  };
+
+  const handleSwitchTemplateType = (type: DMTemplateType) => {
+    if (!activeDmCandidate) return;
+    setActiveDmTemplateType(type);
+    const text = generateDiscordDMTemplate(
+      activeDmCandidate,
+      type,
+      currentAdminProfile?.role || 'Admin Officer',
+      subjects
+    );
+    setCustomDmText(text);
+    setDmCopiedSuccess(false);
+  };
+
+  const handleCopyModalDmText = (markStatusSent = true) => {
+    if (!activeDmCandidate) return;
+    navigator.clipboard.writeText(customDmText);
+    setDmCopiedSuccess(true);
+    setTimeout(() => setDmCopiedSuccess(false), 2500);
+
+    if (markStatusSent || activeDmCandidate.status === 'Pending Admin DM') {
+      onUpdateStatus(activeDmCandidate.id, 'DM Sent');
+    }
+  };
+
   const handleExportCSV = () => {
     const headers = [
       'ID',
@@ -144,6 +265,85 @@ export function AdminRegistryModal({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleSaveWebhookSettings = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setIsSavingWebhook(true);
+    const updated = saveWebhookConfig(webhookConfig);
+    setWebhookConfig(updated);
+    setTimeout(() => {
+      setIsSavingWebhook(false);
+    }, 600);
+  };
+
+  const handleTestWebhookDispatch = async () => {
+    setTestWebhookStatus('testing');
+    setTestWebhookMessage('Dispatching test payload to Discord webhook endpoint...');
+    try {
+      const result = await testDiscordWebhook(webhookConfig.url);
+      setWebhookLogs(getWebhookLogs());
+      if (result.success && result.status === 'delivered') {
+        setTestWebhookStatus('success');
+        setTestWebhookMessage('✓ Test webhook delivered successfully to your Discord channel!');
+      } else if (result.status === 'simulated') {
+        setTestWebhookStatus('success');
+        setTestWebhookMessage('✓ Test payload generated and internal admin audio chime played (Paste a live Discord Webhook URL for channel delivery).');
+      } else {
+        setTestWebhookStatus('failed');
+        setTestWebhookMessage(`✕ Webhook delivery failed: ${result.error || result.message}`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setTestWebhookStatus('failed');
+      setTestWebhookMessage(`✕ Webhook error: ${msg}`);
+    }
+  };
+
+  const handleToggleDesktopAlerts = async () => {
+    if (!webhookConfig.notifyDesktop) {
+      const granted = await requestDesktopNotificationPermission();
+      const updated = saveWebhookConfig({ notifyDesktop: granted });
+      setWebhookConfig(updated);
+      if (!granted) {
+        alert('Desktop notification permission was denied or is unsupported by your browser.');
+      }
+    } else {
+      const updated = saveWebhookConfig({ notifyDesktop: false });
+      setWebhookConfig(updated);
+    }
+  };
+
+  const handleResendWebhookForCandidate = async (entry: CandidateEnrollment, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setResendingWebhookId(entry.id);
+    setResendWebhookFeedback(null);
+    try {
+      const result = await dispatchDiscordWebhook(entry);
+      setWebhookLogs(getWebhookLogs());
+      if (result.success) {
+        setResendWebhookFeedback(`✓ Webhook notification triggered for ${entry.discord}!`);
+      } else {
+        setResendWebhookFeedback(`✕ Webhook failed: ${result.error || result.message}`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setResendWebhookFeedback(`✕ Webhook error: ${msg}`);
+    } finally {
+      setTimeout(() => {
+        setResendingWebhookId(null);
+      }, 1000);
+      setTimeout(() => {
+        setResendWebhookFeedback(null);
+      }, 4000);
+    }
+  };
+
+  const handleClearWebhookLogs = () => {
+    if (confirm('Clear all webhook dispatch history logs?')) {
+      clearWebhookLogs();
+      setWebhookLogs([]);
+    }
   };
 
   const currentAdminProfile = AUTHORIZED_ADMINS.find((a) => a.username === currentUser);
@@ -466,9 +666,126 @@ export function AdminRegistryModal({
               </button>
             </div>
 
-            <p style={{ fontSize: '12px', color: 'var(--text-dim)', lineHeight: 1.5, marginBottom: '14px' }}>
-              Real candidates who registered with their personal email and Discord tag are listed below. Click <strong>COPY DISCORD</strong> to quickly reach out to each candidate.
-            </p>
+            {/* Admin Navigation Tabs */}
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                borderBottom: '1px solid var(--line)',
+                marginBottom: '14px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setActiveAdminTab('candidates')}
+                style={{
+                  background: activeAdminTab === 'candidates' ? 'rgba(255,255,255,0.08)' : 'transparent',
+                  border: 'none',
+                  borderBottom: `2px solid ${activeAdminTab === 'candidates' ? '#ffffff' : 'transparent'}`,
+                  color: activeAdminTab === 'candidates' ? '#ffffff' : 'var(--text-dim)',
+                  padding: '8px 14px',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <UserCheck size={13} />
+                <span>CANDIDATES REGISTRY ({enrollments.length})</span>
+                {enrollments.filter((e) => e.status === 'Pending Admin DM').length > 0 && (
+                  <span
+                    style={{
+                      background: '#fde047',
+                      color: '#000',
+                      padding: '1px 5px',
+                      fontSize: '9px',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {enrollments.filter((e) => e.status === 'Pending Admin DM').length} PENDING DM
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveAdminTab('webhooks');
+                  setWebhookLogs(getWebhookLogs());
+                }}
+                style={{
+                  background: activeAdminTab === 'webhooks' ? 'rgba(88, 101, 242, 0.18)' : 'transparent',
+                  border: 'none',
+                  borderBottom: `2px solid ${activeAdminTab === 'webhooks' ? '#5865F2' : 'transparent'}`,
+                  color: activeAdminTab === 'webhooks' ? '#ffffff' : 'var(--text-dim)',
+                  padding: '8px 14px',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <Bell size={13} color={activeAdminTab === 'webhooks' ? '#5865F2' : 'var(--text-dim)'} />
+                <span>DISCORD WEBHOOK & ALERTS</span>
+                {webhookConfig.enabled ? (
+                  <span
+                    style={{
+                      background: 'rgba(74, 222, 128, 0.2)',
+                      color: '#4ade80',
+                      padding: '1px 5px',
+                      fontSize: '9px',
+                      border: '1px solid rgba(74, 222, 128, 0.4)',
+                    }}
+                  >
+                    ACTIVE
+                  </span>
+                ) : (
+                  <span
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.2)',
+                      color: '#f87171',
+                      padding: '1px 5px',
+                      fontSize: '9px',
+                    }}
+                  >
+                    PAUSED
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {resendWebhookFeedback && (
+              <div
+                style={{
+                  background: resendWebhookFeedback.startsWith('✓') ? 'rgba(74, 222, 128, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                  border: `1px solid ${resendWebhookFeedback.startsWith('✓') ? 'rgba(74, 222, 128, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+                  color: resendWebhookFeedback.startsWith('✓') ? '#a3e635' : '#f87171',
+                  padding: '8px 12px',
+                  fontSize: '11px',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                {resendWebhookFeedback.startsWith('✓') ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
+                <span>{resendWebhookFeedback}</span>
+              </div>
+            )}
+
+            {/* TAB 1: CANDIDATES REGISTRY */}
+            {activeAdminTab === 'candidates' && (
+              <div>
+                <p style={{ fontSize: '12px', color: 'var(--text-dim)', lineHeight: 1.5, marginBottom: '14px' }}>
+                  Real candidates who registered with their personal email and Discord tag are listed below. Click <strong>COPY DISCORD</strong> to quickly reach out to each candidate.
+                </p>
 
             {/* Controls Toolbar */}
             <div
@@ -668,6 +985,60 @@ export function AdminRegistryModal({
                           <option value="Enrolled & Verified" style={{ background: '#111', color: '#fff' }}>Enrolled & Verified</option>
                         </select>
 
+                        {/* Quick 1-Click Copy Discord DM Template */}
+                        <button
+                          type="button"
+                          onClick={(e) => handleQuickCopyDM(entry, e)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: copiedDmId === entry.id ? 'rgba(74, 222, 128, 0.2)' : 'rgba(88, 101, 242, 0.18)',
+                            border: `1px solid ${copiedDmId === entry.id ? 'rgba(74, 222, 128, 0.5)' : 'rgba(88, 101, 242, 0.45)'}`,
+                            color: copiedDmId === entry.id ? '#a3e635' : '#c7d2fe',
+                            fontSize: '10px',
+                            padding: '3px 7px',
+                            fontFamily: 'var(--font-mono)',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                          }}
+                          title="Generate & copy pre-formatted Discord direct message template for this candidate to clipboard (auto-marks status as DM Sent)"
+                        >
+                          {copiedDmId === entry.id ? (
+                            <>
+                              <Check size={11} color="#a3e635" />
+                              <span style={{ fontWeight: 700 }}>DM COPIED!</span>
+                            </>
+                          ) : (
+                            <>
+                              <MessageSquare size={11} color="#5865F2" />
+                              <span>COPY DM</span>
+                            </>
+                          )}
+                        </button>
+
+                        {/* Open DM Template Customizer / Previewer */}
+                        <button
+                          type="button"
+                          onClick={(e) => handleOpenDmModal(entry, e)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: 'rgba(255,255,255,0.06)',
+                            border: '1px solid var(--line)',
+                            color: '#ffffff',
+                            fontSize: '10px',
+                            padding: '3px 6px',
+                            fontFamily: 'var(--font-mono)',
+                            cursor: 'pointer',
+                          }}
+                          title="Preview, customize, and generate Discord DM message variations for this candidate"
+                        >
+                          <Edit3 size={11} />
+                          <span>PREVIEW DM</span>
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => generateStatementOfEntryPDF(entry, subjects)}
@@ -763,6 +1134,48 @@ export function AdminRegistryModal({
                             </>
                           )}
                         </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => handleOpenDmModal(entry, e)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: 'rgba(88, 101, 242, 0.12)',
+                            border: '1px solid rgba(88, 101, 242, 0.35)',
+                            color: '#c7d2fe',
+                            fontSize: '10px',
+                            padding: '4px 6px',
+                            fontFamily: 'var(--font-mono)',
+                            cursor: 'pointer',
+                          }}
+                          title="Open Discord DM dispatch template generator"
+                        >
+                          <Send size={10} color="#5865F2" />
+                          <span>DM TEMPLATE</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => handleResendWebhookForCandidate(entry, e)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: resendingWebhookId === entry.id ? 'rgba(234, 179, 8, 0.25)' : 'rgba(234, 179, 8, 0.1)',
+                            border: '1px solid rgba(234, 179, 8, 0.4)',
+                            color: '#fde047',
+                            fontSize: '10px',
+                            padding: '4px 6px',
+                            fontFamily: 'var(--font-mono)',
+                            cursor: 'pointer',
+                          }}
+                          title="Trigger Discord Webhook alert for this candidate now"
+                        >
+                          <Zap size={10} color="#fde047" />
+                          <span>{resendingWebhookId === entry.id ? 'SENDING...' : 'TRIGGER WEBHOOK'}</span>
+                        </button>
                       </div>
 
                       <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
@@ -831,16 +1244,621 @@ export function AdminRegistryModal({
                 ))}
               </div>
             )}
+          </div>
+        )}
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--line)', paddingTop: '12px' }}>
-              <button
-                type="button"
-                className="btn btn--ghost"
-                style={{ padding: '10px 18px', fontSize: '11px', color: '#fff', width: 'auto' }}
-                onClick={onClose}
+        {/* TAB 2: DISCORD WEBHOOK & ADMIN ALERTS */}
+        {activeAdminTab === 'webhooks' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div
+              style={{
+                background: 'rgba(88, 101, 242, 0.1)',
+                border: '1px solid rgba(88, 101, 242, 0.35)',
+                padding: '14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Radio size={16} color="#5865F2" />
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>
+                    AUTOMATIC DISCORD WEBHOOK DISPATCH
+                  </span>
+                </div>
+                <span
+                  style={{
+                    fontSize: '10px',
+                    padding: '2px 8px',
+                    background: webhookConfig.enabled ? 'rgba(74, 222, 128, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                    color: webhookConfig.enabled ? '#4ade80' : '#f87171',
+                    border: `1px solid ${webhookConfig.enabled ? 'rgba(74,222,128,0.4)' : 'rgba(239,68,68,0.4)'}`,
+                  }}
+                >
+                  {webhookConfig.enabled ? '● REAL-TIME DISPATCH ENABLED' : '○ DISPATCH PAUSED'}
+                </span>
+              </div>
+
+              <p style={{ fontSize: '11px', color: '#b5bac1', lineHeight: 1.5, margin: 0 }}>
+                When a candidate submits their Cambridge registration, an automatic HTTP POST is instantly dispatched to your Discord administrator channel with candidate Discord handle, verified email, syllabus codes, and selected components.
+              </p>
+
+              <form onSubmit={handleSaveWebhookSettings} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '10px', color: '#949ba4', marginBottom: '4px', letterSpacing: '0.08em' }}>
+                    DISCORD CHANNEL WEBHOOK URL:
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://discord.com/api/webhooks/123456789/abcdef..."
+                    value={webhookConfig.url}
+                    onChange={(e) => setWebhookConfig((prev) => ({ ...prev, url: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      background: '#1e1f22',
+                      border: '1px solid #3f4147',
+                      color: '#ffffff',
+                      padding: '10px 12px',
+                      fontSize: '12px',
+                      fontFamily: 'var(--font-mono)',
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                    }}
+                  />
+                  <span style={{ fontSize: '10px', color: '#949ba4', marginTop: '3px', display: 'block' }}>
+                    💡 To create: Discord Channel Settings → Integrations → Webhooks → New Webhook → Copy Webhook URL.
+                  </span>
+                </div>
+
+                {/* Notification Toggles */}
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '4px' }}>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#ffffff', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={webhookConfig.enabled}
+                      onChange={(e) => {
+                        const updated = saveWebhookConfig({ enabled: e.target.checked });
+                        setWebhookConfig(updated);
+                      }}
+                    />
+                    <span>Enable Webhook Dispatch</span>
+                  </label>
+
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#ffffff', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={webhookConfig.notifySound}
+                      onChange={(e) => {
+                        const updated = saveWebhookConfig({ notifySound: e.target.checked });
+                        setWebhookConfig(updated);
+                      }}
+                    />
+                    <span>Play Admin Audio Alert</span>
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={playAdminNotificationSound}
+                    style={{
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid var(--line)',
+                      color: '#ffffff',
+                      fontSize: '10px',
+                      padding: '2px 8px',
+                      fontFamily: 'var(--font-mono)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <Volume2 size={11} />
+                    <span>Test Audio Alert</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleToggleDesktopAlerts}
+                    style={{
+                      background: webhookConfig.notifyDesktop ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.06)',
+                      border: `1px solid ${webhookConfig.notifyDesktop ? 'rgba(74,222,128,0.4)' : 'var(--line)'}`,
+                      color: webhookConfig.notifyDesktop ? '#a3e635' : '#ffffff',
+                      fontSize: '10px',
+                      padding: '2px 8px',
+                      fontFamily: 'var(--font-mono)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <Bell size={11} />
+                    <span>{webhookConfig.notifyDesktop ? '✓ Desktop Alerts ON' : 'Enable Desktop Alerts'}</span>
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
+                  <button
+                    type="submit"
+                    style={{
+                      background: '#5865F2',
+                      border: 'none',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      padding: '8px 16px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <Settings size={12} />
+                    <span>{isSavingWebhook ? '✓ SAVED!' : 'SAVE WEBHOOK SETTINGS'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleTestWebhookDispatch}
+                    disabled={testWebhookStatus === 'testing'}
+                    style={{
+                      background: 'rgba(234, 179, 8, 0.15)',
+                      border: '1px solid rgba(234, 179, 8, 0.4)',
+                      color: '#fde047',
+                      fontSize: '11px',
+                      padding: '8px 16px',
+                      cursor: testWebhookStatus === 'testing' ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <Zap size={12} />
+                    <span>{testWebhookStatus === 'testing' ? 'SENDING TEST PAYLOAD...' : 'DISPATCH TEST WEBHOOK'}</span>
+                  </button>
+                </div>
+
+                {testWebhookMessage && (
+                  <div
+                    style={{
+                      padding: '8px 10px',
+                      background: testWebhookStatus === 'success' ? 'rgba(74, 222, 128, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                      border: `1px solid ${testWebhookStatus === 'success' ? 'rgba(74, 222, 128, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+                      color: testWebhookStatus === 'success' ? '#a3e635' : '#f87171',
+                      fontSize: '11px',
+                      marginTop: '4px',
+                    }}
+                  >
+                    {testWebhookMessage}
+                  </div>
+                )}
+              </form>
+            </div>
+
+            {/* Webhook Activity History Logs */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#ffffff' }}>
+                  <Activity size={13} color="#60a5fa" />
+                  <span>RECENT WEBHOOK DISPATCH LOGS ({webhookLogs.length})</span>
+                </div>
+
+                {webhookLogs.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearWebhookLogs}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-dimmer)',
+                      fontSize: '10px',
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    Clear Activity Log
+                  </button>
+                )}
+              </div>
+
+              {webhookLogs.length === 0 ? (
+                <div
+                  style={{
+                    padding: '20px',
+                    textAlign: 'center',
+                    border: '1px dashed var(--line)',
+                    color: 'var(--text-dim)',
+                    fontSize: '11px',
+                  }}
+                >
+                  No webhook triggers recorded yet. When candidates enroll, automatic logs will appear here.
+                </div>
+              ) : (
+                <div
+                  style={{
+                    maxHeight: '220px',
+                    overflowY: 'auto',
+                    border: '1px solid var(--line-strong)',
+                    background: 'rgba(0,0,0,0.3)',
+                  }}
+                >
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: 'rgba(255,255,255,0.06)', borderBottom: '1px solid var(--line)' }}>
+                        <th style={{ padding: '6px 10px', color: '#949ba4', fontWeight: 600 }}>TIMESTAMP</th>
+                        <th style={{ padding: '6px 10px', color: '#949ba4', fontWeight: 600 }}>CANDIDATE</th>
+                        <th style={{ padding: '6px 10px', color: '#949ba4', fontWeight: 600 }}>STATUS</th>
+                        <th style={{ padding: '6px 10px', color: '#949ba4', fontWeight: 600 }}>SUMMARY / DETAILS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {webhookLogs.map((log) => (
+                        <tr key={log.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td style={{ padding: '6px 10px', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
+                            {log.timestamp}
+                          </td>
+                          <td style={{ padding: '6px 10px', color: '#60a5fa', fontWeight: 600 }}>
+                            {log.candidateDiscord}
+                          </td>
+                          <td style={{ padding: '6px 10px' }}>
+                            <span
+                              style={{
+                                fontSize: '9px',
+                                padding: '1px 5px',
+                                background:
+                                  log.status === 'delivered'
+                                    ? 'rgba(74, 222, 128, 0.2)'
+                                    : log.status === 'simulated'
+                                    ? 'rgba(234, 179, 8, 0.2)'
+                                    : 'rgba(239, 68, 68, 0.2)',
+                                color:
+                                  log.status === 'delivered'
+                                    ? '#4ade80'
+                                    : log.status === 'simulated'
+                                    ? '#fde047'
+                                    : '#f87171',
+                              }}
+                            >
+                              {log.status.toUpperCase()} {log.responseCode ? `(${log.responseCode})` : ''}
+                            </span>
+                          </td>
+                          <td style={{ padding: '6px 10px', color: log.errorMessage ? '#f87171' : 'var(--text-dim)' }}>
+                            {log.errorMessage || log.payloadSummary || log.url}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--line)', paddingTop: '12px', marginTop: '14px' }}>
+          <button
+            type="button"
+            className="btn btn--ghost"
+            style={{ padding: '10px 18px', fontSize: '11px', color: '#fff', width: 'auto' }}
+            onClick={onClose}
+          >
+            Close Registry
+          </button>
+        </div>
+      </div>
+    )}
+
+
+        {/* Discord DM Template Preview & Customizer Modal */}
+        {activeDmCandidate && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.85)',
+              backdropFilter: 'blur(6px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1100,
+              padding: '16px',
+            }}
+            onClick={() => setActiveDmCandidate(null)}
+          >
+            <div
+              style={{
+                background: '#18191c',
+                border: '1px solid #5865F2',
+                borderRadius: '8px',
+                width: '100%',
+                maxWidth: '680px',
+                maxHeight: '92vh',
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.8), 0 0 30px rgba(88, 101, 242, 0.25)',
+                color: '#ffffff',
+                fontFamily: 'var(--font-mono)',
+                overflow: 'hidden',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* DM Modal Header */}
+              <div
+                style={{
+                  padding: '14px 18px',
+                  background: '#1e1f22',
+                  borderBottom: '1px solid rgba(255,255,255,0.08)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
               >
-                Close Registry
-              </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
+                    style={{
+                      background: '#5865F2',
+                      borderRadius: '6px',
+                      padding: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <MessageSquare size={16} color="#ffffff" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '0.06em', color: '#ffffff' }}>
+                      DISCORD DM TEMPLATE DISPATCH
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#949ba4', marginTop: '2px' }}>
+                      Target Candidate: <strong style={{ color: '#5865F2' }}>{activeDmCandidate.discord}</strong> • ID:{' '}
+                      <span style={{ color: '#ffffff' }}>[{activeDmCandidate.id}]</span> •{' '}
+                      <span>{activeDmCandidate.email}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveDmCandidate(null)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#949ba4',
+                    cursor: 'pointer',
+                    fontSize: '18px',
+                    padding: '4px 8px',
+                  }}
+                  title="Close DM Template"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Template Selection Tabs */}
+              <div
+                style={{
+                  padding: '12px 18px 6px 18px',
+                  background: '#232428',
+                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                }}
+              >
+                <div style={{ fontSize: '10px', color: '#949ba4', letterSpacing: '0.1em', marginBottom: '8px' }}>
+                  SELECT DIRECT MESSAGE TEMPLATE TYPE:
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {DM_TEMPLATE_OPTIONS.map((tmpl) => {
+                    const isSelected = activeDmTemplateType === tmpl.id;
+                    return (
+                      <button
+                        key={tmpl.id}
+                        type="button"
+                        onClick={() => handleSwitchTemplateType(tmpl.id)}
+                        style={{
+                          background: isSelected ? 'rgba(88, 101, 242, 0.25)' : 'rgba(255,255,255,0.04)',
+                          border: `1px solid ${isSelected ? '#5865F2' : 'rgba(255,255,255,0.1)'}`,
+                          color: isSelected ? '#ffffff' : '#949ba4',
+                          fontSize: '11px',
+                          padding: '6px 10px',
+                          borderRadius: '4px',
+                          fontFamily: 'var(--font-mono)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        {isSelected && <Check size={11} color="#5865F2" />}
+                        <span>{tmpl.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: '11px', color: '#b5bac1', marginTop: '8px', fontStyle: 'italic' }}>
+                  {DM_TEMPLATE_OPTIONS.find((t) => t.id === activeDmTemplateType)?.description}
+                </div>
+              </div>
+
+              {/* Editable Markdown Message Box */}
+              <div style={{ padding: '16px 18px', flex: 1, overflowY: 'auto' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '6px',
+                  }}
+                >
+                  <span style={{ fontSize: '10px', color: '#949ba4', letterSpacing: '0.08em' }}>
+                    EDITABLE DISCORD MARKDOWN OUTPUT:
+                  </span>
+                  <span style={{ fontSize: '10px', color: '#4ade80' }}>
+                    {dmCopiedSuccess ? '✓ COPIED TO CLIPBOARD!' : 'Ready to Copy & Send'}
+                  </span>
+                </div>
+
+                <textarea
+                  value={customDmText}
+                  onChange={(e) => setCustomDmText(e.target.value)}
+                  style={{
+                    width: '100%',
+                    height: '240px',
+                    background: '#2b2d31',
+                    border: '1px solid #3f4147',
+                    borderRadius: '6px',
+                    padding: '12px 14px',
+                    color: '#dbdee1',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '12px',
+                    lineHeight: '1.45',
+                    resize: 'vertical',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                  }}
+                  placeholder="Pre-formatted Discord Direct Message content..."
+                />
+
+                <div
+                  style={{
+                    marginTop: '8px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '8px',
+                    fontSize: '11px',
+                    color: '#949ba4',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Sparkles size={12} color="#5865F2" />
+                    <span>Includes dynamic subject codes, papers, timestamps & admin signature.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchTemplateType(activeDmTemplateType)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#60a5fa',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      padding: 0,
+                    }}
+                  >
+                    Reset to Default Text
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons Footer */}
+              <div
+                style={{
+                  padding: '14px 18px',
+                  background: '#1e1f22',
+                  borderTop: '1px solid rgba(255,255,255,0.08)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyDiscord(activeDmCandidate.discord, activeDmCandidate.id)}
+                    style={{
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: '4px',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      padding: '8px 12px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                    }}
+                    title="Copy only candidate Discord handle"
+                  >
+                    <Copy size={12} />
+                    <span>Copy @Handle</span>
+                  </button>
+
+                  <a
+                    href="https://discord.com/app"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      background: 'rgba(88, 101, 242, 0.15)',
+                      border: '1px solid rgba(88, 101, 242, 0.4)',
+                      borderRadius: '4px',
+                      color: '#c7d2fe',
+                      fontSize: '11px',
+                      padding: '8px 12px',
+                      textDecoration: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                    }}
+                    title="Open Discord in browser"
+                  >
+                    <ExternalLink size={12} />
+                    <span>Open Discord</span>
+                  </a>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyModalDmText(false)}
+                    style={{
+                      background: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: '4px',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      padding: '8px 14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <Copy size={12} />
+                    <span>Copy Text Only</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCopyModalDmText(true)}
+                    style={{
+                      background: '#5865F2',
+                      border: 'none',
+                      borderRadius: '4px',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      padding: '8px 16px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 2px 8px rgba(88, 101, 242, 0.4)',
+                    }}
+                  >
+                    {dmCopiedSuccess ? <Check size={14} color="#a3e635" /> : <Send size={14} />}
+                    <span>{dmCopiedSuccess ? '✓ COPIED & MARKED DM SENT!' : 'Copy & Mark "DM Sent"'}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
