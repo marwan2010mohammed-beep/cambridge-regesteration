@@ -1,0 +1,6 @@
+{
+  "name": "Cambridge IGCSE Registration",
+  "description": "Cambridge IGCSE Oct/Nov Examination Papers and Candidate Registration Portal",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
