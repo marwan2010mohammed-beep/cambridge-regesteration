@@ -4,7 +4,10 @@ import { AdminRegistryModal } from './components/AdminRegistryModal';
 import { SubjectCatalogModal } from './components/SubjectCatalogModal';
 import { ALL_OCT_NOV_SUBJECTS } from './data/subjects';
 import { ExamSubject, CandidateEnrollment } from './types';
-import { MessageSquare, Mail, ShieldAlert, CheckCircle2, Copy, Check, BookOpen, Search, X, Plus, Layers, ExternalLink, ArrowUpRight, Radio, Users } from 'lucide-react';
+import { ExamScheduleVisualizer } from './components/ExamScheduleVisualizer';
+import { generateTimetableSummary } from './data/examSchedule';
+import { generateStatementOfEntryPDF } from './utils/pdfGenerator';
+import { MessageSquare, Mail, ShieldAlert, CheckCircle2, Copy, Check, BookOpen, Search, X, Plus, Layers, ExternalLink, ArrowUpRight, Radio, Users, Calendar, AlertTriangle, Clock, FileText, Download, FileCheck } from 'lucide-react';
 
 export const DISCORD_INVITE_URL = 'https://discord.gg/YD3hR9Sn54';
 
@@ -75,6 +78,7 @@ export default function App() {
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [lastEnrolledRecord, setLastEnrolledRecord] = useState<CandidateEnrollment | null>(null);
   const [copiedDiscord, setCopiedDiscord] = useState(false);
+  const [pdfDownloaded, setPdfDownloaded] = useState(false);
 
   // Save selected subject codes to local storage
   useEffect(() => {
@@ -392,6 +396,10 @@ export default function App() {
 
   const selectedCount = subjects.filter((s) => s.selected).length;
 
+  const timetableSummary = useMemo(() => {
+    return generateTimetableSummary(subjects);
+  }, [subjects]);
+
   return (
     <section className="hero" id="top">
       {/* Background Media & Cinematic Scrim */}
@@ -441,6 +449,45 @@ export default function App() {
               }}
             >
               Papers ({selectedCount})
+            </a>
+            <a
+              href="#timetable"
+              className="nav-link"
+              id="nav-timetable"
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveModal('timetable');
+              }}
+              title="View your Oct/Nov 2026 Exam Schedule, spacing calendar, and clash detection"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+            >
+              <Calendar size={13} />
+              <span>Timetable</span>
+              {timetableSummary.directClashesCount > 0 ? (
+                <span
+                  style={{
+                    fontSize: '9px',
+                    background: '#ef4444',
+                    color: '#fff',
+                    padding: '1px 5px',
+                    fontWeight: 700,
+                  }}
+                >
+                  {timetableSummary.directClashesCount} CLASH
+                </span>
+              ) : timetableSummary.totalScheduledPapers > 0 ? (
+                <span
+                  style={{
+                    fontSize: '9px',
+                    background: 'rgba(96, 165, 250, 0.2)',
+                    color: '#60a5fa',
+                    padding: '1px 5px',
+                    fontWeight: 600,
+                  }}
+                >
+                  {timetableSummary.totalScheduledPapers}P
+                </span>
+              ) : null}
             </a>
             <a
               href="#identity"
@@ -548,6 +595,29 @@ export default function App() {
           </div>
           <div className="mobile-menu__item" style={{ '--i': 2 } as React.CSSProperties}>
             <a
+              href="#timetable"
+              className="mobile-menu__link"
+              onClick={(e) => {
+                e.preventDefault();
+                setMenuOpen(false);
+                setActiveModal('timetable');
+              }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+            >
+              <span>Timetable & Clashes</span>
+              {timetableSummary.directClashesCount > 0 ? (
+                <span style={{ fontSize: '10px', background: '#ef4444', color: '#fff', padding: '2px 6px' }}>
+                  {timetableSummary.directClashesCount} Clash
+                </span>
+              ) : (
+                <span style={{ fontSize: '10px', color: '#60a5fa' }}>
+                  {timetableSummary.totalScheduledPapers} Papers
+                </span>
+              )}
+            </a>
+          </div>
+          <div className="mobile-menu__item" style={{ '--i': 3 } as React.CSSProperties}>
+            <a
               href="#identity"
               className="mobile-menu__link"
               onClick={(e) => {
@@ -559,7 +629,7 @@ export default function App() {
               Identity
             </a>
           </div>
-          <div className="mobile-menu__item" style={{ '--i': 3 } as React.CSSProperties}>
+          <div className="mobile-menu__item" style={{ '--i': 4 } as React.CSSProperties}>
             <a
               href="#admin"
               className="mobile-menu__link"
@@ -572,7 +642,7 @@ export default function App() {
               Admin Registry ({enrollments.length})
             </a>
           </div>
-          <div className="mobile-menu__item" style={{ '--i': 4 } as React.CSSProperties}>
+          <div className="mobile-menu__item" style={{ '--i': 5 } as React.CSSProperties}>
             <a
               href={DISCORD_INVITE_URL}
               target="_blank"
@@ -989,6 +1059,111 @@ export default function App() {
               <span className="accent">[ Customize Papers ↗ ]</span>
             </button>
 
+            {/* Interactive Timetable & Clash Preview Banner */}
+            {selectedCount > 0 && (
+              <div
+                style={{
+                  background:
+                    timetableSummary.directClashesCount > 0
+                      ? 'rgba(239, 68, 68, 0.12)'
+                      : 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid',
+                  borderColor:
+                    timetableSummary.directClashesCount > 0
+                      ? 'rgba(239, 68, 68, 0.45)'
+                      : 'var(--line)',
+                  padding: '10px 12px',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Calendar
+                    size={15}
+                    color={
+                      timetableSummary.directClashesCount > 0
+                        ? '#f87171'
+                        : timetableSummary.sameDayDoublesCount > 0
+                        ? '#fbbf24'
+                        : '#60a5fa'
+                    }
+                  />
+                  <div>
+                    <span style={{ color: '#fff', fontWeight: 600 }}>Oct/Nov 2026 Timetable:</span>{' '}
+                    <span style={{ color: 'var(--text-dim)' }}>
+                      {timetableSummary.totalScheduledPapers} Papers across {timetableSummary.totalExamDays} Days
+                    </span>
+                    {timetableSummary.directClashesCount > 0 ? (
+                      <span
+                        style={{
+                          color: '#f87171',
+                          fontWeight: 700,
+                          marginLeft: '6px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '2px',
+                        }}
+                      >
+                        ⚠️ {timetableSummary.directClashesCount} Direct Clash Detected!
+                      </span>
+                    ) : timetableSummary.sameDayDoublesCount > 0 ? (
+                      <span
+                        style={{
+                          color: '#fbbf24',
+                          fontWeight: 600,
+                          marginLeft: '6px',
+                        }}
+                      >
+                        ⚡ Double Exam Day ({timetableSummary.sameDayDoublesCount})
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          color: '#4ade80',
+                          marginLeft: '6px',
+                        }}
+                      >
+                        ✓ Clean Spacing ({timetableSummary.averageGapDays}d avg gap)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveModal('timetable')}
+                  style={{
+                    background:
+                      timetableSummary.directClashesCount > 0
+                        ? '#ef4444'
+                        : 'rgba(96, 165, 250, 0.15)',
+                    color: timetableSummary.directClashesCount > 0 ? '#fff' : '#60a5fa',
+                    border: '1px solid',
+                    borderColor:
+                      timetableSummary.directClashesCount > 0
+                        ? '#ef4444'
+                        : 'rgba(96, 165, 250, 0.4)',
+                    padding: '4px 8px',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="Open interactive calendar, chronological timeline & clash diagnostic"
+                >
+                  <span>[ View Schedule & Calendar ↗ ]</span>
+                </button>
+              </div>
+            )}
+
             {/* Submit Buttons */}
             <button
               type="submit"
@@ -1093,6 +1268,7 @@ export default function App() {
       {activeModal === 'admin' && (
         <AdminRegistryModal
           enrollments={enrollments}
+          subjects={subjects}
           onClose={() => setActiveModal(null)}
           onUpdateStatus={handleUpdateStatus}
           onDeleteRecord={handleDeleteRecord}
@@ -1114,8 +1290,84 @@ export default function App() {
         />
       )}
 
+      {/* Full Exam Schedule & Timetable Visualizer Modal */}
+      {activeModal === 'timetable' && (
+        <div
+          className="terminal-modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="timetable-dialog-title"
+          onClick={() => setActiveModal(null)}
+        >
+          <div
+            className="terminal-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              fontFamily: 'var(--font-mono)',
+              maxWidth: '920px',
+              width: '95vw',
+              maxHeight: '92vh',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: 'clamp(16px, 2.5vw, 24px)',
+              overflowY: 'auto',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: '1px solid var(--line)',
+                paddingBottom: '12px',
+                marginBottom: '16px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Calendar size={18} color="#60a5fa" />
+                <span
+                  id="timetable-dialog-title"
+                  style={{
+                    fontSize: '12px',
+                    letterSpacing: '0.14em',
+                    textTransform: 'uppercase',
+                    color: '#ffffff',
+                    fontWeight: 600,
+                  }}
+                >
+                  CAMBRIDGE IGCSE OCT/NOV 2026 TIMETABLE & CLASH DETECTOR
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-dim)',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  padding: '4px 8px',
+                  fontFamily: 'var(--font-mono)',
+                }}
+                aria-label="Close timetable dialog"
+              >
+                [X]
+              </button>
+            </div>
+
+            <ExamScheduleVisualizer
+              subjects={subjects}
+              candidateName={candidateName}
+              onClose={() => setActiveModal(null)}
+              onOpenSubjectCatalog={() => setActiveModal('papers')}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Interactive Modal System for Cambridge IGCSE Session Management */}
-      {activeModal && activeModal !== 'admin' && activeModal !== 'papers' && (
+      {activeModal && activeModal !== 'admin' && activeModal !== 'papers' && activeModal !== 'timetable' && (
         <div
           className="terminal-modal-backdrop"
           role="dialog"
@@ -1647,6 +1899,84 @@ export default function App() {
                   </div>
                 )}
 
+                {/* Official PDF Statement of Entry / Receipt Download Section */}
+                {lastEnrolledRecord && (
+                  <div
+                    style={{
+                      background: 'rgba(37, 99, 235, 0.12)',
+                      border: '1px solid rgba(96, 165, 250, 0.45)',
+                      padding: '14px 16px',
+                      marginBottom: '16px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                    }}
+                  >
+                    <div style={{ flex: '1 1 240px' }}>
+                      <div
+                        style={{
+                          color: '#ffffff',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                        }}
+                      >
+                        <FileText size={16} color="#60a5fa" />
+                        <span>Official Cambridge Statement of Entry (PDF)</span>
+                      </div>
+                      <div
+                        style={{
+                          color: 'var(--text-dim)',
+                          fontSize: '11px',
+                          marginTop: '4px',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        Official A4 PDF document containing your Candidate ID (<strong style={{ color: '#fff' }}>{lastEnrolledRecord.id}</strong>), Centre Number (<strong style={{ color: '#fff' }}>EG042</strong>), component papers, examination dates, key times, spacing analysis & CIE examination hall rules.
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn btn--solid"
+                      onClick={() => {
+                        generateStatementOfEntryPDF(lastEnrolledRecord, subjects);
+                        setPdfDownloaded(true);
+                      }}
+                      style={{
+                        background: pdfDownloaded ? '#10b981' : '#3b82f6',
+                        color: pdfDownloaded ? '#000' : '#ffffff',
+                        padding: '10px 16px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        border: 'none',
+                      }}
+                      title="Download official Cambridge Statement of Entry PDF for your records"
+                    >
+                      {pdfDownloaded ? (
+                        <>
+                          <FileCheck size={15} />
+                          <span>PDF Downloaded (Download Again)</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download size={15} />
+                          <span>Download Statement of Entry (PDF)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
                 {/* Direct Discord Server Join Action */}
                 <div
                   style={{
@@ -1681,19 +2011,38 @@ export default function App() {
                   </a>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     className="btn btn--solid"
-                    style={{ padding: '12px 18px', fontSize: '11px', flex: 1 }}
-                    onClick={() => setActiveModal('admin')}
+                    style={{
+                      padding: '12px 14px',
+                      fontSize: '11px',
+                      flex: '1 1 200px',
+                      background: '#60a5fa',
+                      color: '#000',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                    onClick={() => setActiveModal('timetable')}
                   >
-                    View Admin Candidate Registry
+                    <Calendar size={14} />
+                    <span>View Exam Timetable & Spacing</span>
                   </button>
                   <button
                     type="button"
                     className="btn btn--ghost"
-                    style={{ padding: '12px 18px', fontSize: '11px', flex: 1, color: '#fff' }}
+                    style={{ padding: '12px 14px', fontSize: '11px', flex: '1 1 140px' }}
+                    onClick={() => setActiveModal('admin')}
+                  >
+                    Admin Registry Log
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    style={{ padding: '12px 14px', fontSize: '11px', flex: '0 0 70px', color: '#fff' }}
                     onClick={() => setActiveModal(null)}
                   >
                     Done

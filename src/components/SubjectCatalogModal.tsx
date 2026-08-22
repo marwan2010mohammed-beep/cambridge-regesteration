@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { ExamSubject } from '../types';
-import { Search, X, Check, BookOpen, Filter, Sparkles, CheckCircle2, RotateCcw, Layers } from 'lucide-react';
+import { Search, X, Check, BookOpen, Filter, Sparkles, CheckCircle2, RotateCcw, Layers, Calendar } from 'lucide-react';
+import { ExamScheduleVisualizer } from './ExamScheduleVisualizer';
 
 interface SubjectCatalogModalProps {
   subjects: ExamSubject[];
@@ -11,6 +12,7 @@ interface SubjectCatalogModalProps {
   onSelectMultiple: (codes: string[], select: boolean) => void;
   onClose: () => void;
   initialSearch?: string;
+  defaultTab?: 'catalog' | 'timetable';
 }
 
 export function SubjectCatalogModal({
@@ -22,14 +24,18 @@ export function SubjectCatalogModal({
   onSelectMultiple,
   onClose,
   initialSearch = '',
+  defaultTab = 'catalog',
 }: SubjectCatalogModalProps) {
+  const [activeTab, setActiveTab] = useState<'catalog' | 'timetable'>(defaultTab);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    searchInputRef.current?.focus();
-  }, []);
+    if (activeTab === 'catalog') {
+      searchInputRef.current?.focus();
+    }
+  }, [activeTab]);
 
   // Compute unique categories
   const categories = useMemo(() => {
@@ -120,44 +126,104 @@ export function SubjectCatalogModal({
             marginBottom: '14px',
             borderBottom: '1px solid var(--line)',
             paddingBottom: '12px',
+            flexWrap: 'wrap',
+            gap: '10px',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BookOpen size={16} color="#ffffff" />
+            <BookOpen size={16} color="#60a5fa" />
             <span
               id="catalog-dialog-title"
               style={{
                 fontSize: '12px',
-                letterSpacing: '0.18em',
+                letterSpacing: '0.14em',
                 textTransform: 'uppercase',
                 color: '#ffffff',
                 fontWeight: 600,
               }}
             >
-              CAMBRIDGE OCT/NOV SUBJECT & PAPER SELECTION
+              CAMBRIDGE OCT/NOV EXAMINATION ENROLMENT
             </span>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-dim)',
-              cursor: 'pointer',
-              fontSize: '14px',
-              padding: '4px 8px',
-              fontFamily: 'var(--font-mono)',
-              letterSpacing: '0.1em',
-            }}
-            aria-label="Close dialog"
-          >
-            [X]
-          </button>
+          {/* Tab Switcher Buttons */}
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => setActiveTab('catalog')}
+              style={{
+                background: activeTab === 'catalog' ? '#60a5fa' : 'rgba(255, 255, 255, 0.05)',
+                color: activeTab === 'catalog' ? '#000' : 'var(--text-dim)',
+                border: '1px solid',
+                borderColor: activeTab === 'catalog' ? '#60a5fa' : 'var(--line)',
+                padding: '5px 10px',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-mono)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              <Layers size={13} />
+              <span>Subjects & Papers ({selectedCount})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('timetable')}
+              style={{
+                background: activeTab === 'timetable' ? '#60a5fa' : 'rgba(255, 255, 255, 0.05)',
+                color: activeTab === 'timetable' ? '#000' : 'var(--text-dim)',
+                border: '1px solid',
+                borderColor: activeTab === 'timetable' ? '#60a5fa' : 'var(--line)',
+                padding: '5px 10px',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-mono)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              <Calendar size={13} />
+              <span>Timetable & Clashes</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-dim)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                padding: '4px 8px',
+                fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.1em',
+              }}
+              aria-label="Close dialog"
+            >
+              [X]
+            </button>
+          </div>
         </div>
 
-        {/* Search Bar */}
+        {activeTab === 'timetable' ? (
+          <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
+            <ExamScheduleVisualizer
+              subjects={subjects}
+              onClose={onClose}
+              onOpenSubjectCatalog={() => setActiveTab('catalog')}
+              isEmbedded={true}
+            />
+          </div>
+        ) : (
+          <>
+            {/* Search Bar */}
         <div style={{ marginBottom: '14px' }}>
           <div
             style={{
@@ -682,33 +748,35 @@ export function SubjectCatalogModal({
           )}
         </div>
 
-        {/* Modal Footer Controls */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            borderTop: '1px solid var(--line)',
-            paddingTop: '14px',
-            gap: '10px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>
-            Enrolling in <strong style={{ color: '#ffffff' }}>{selectedCount} Cambridge Subjects</strong> with customized papers
-          </div>
+          {/* Modal Footer Controls */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderTop: '1px solid var(--line)',
+              paddingTop: '14px',
+              gap: '10px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>
+              Enrolling in <strong style={{ color: '#ffffff' }}>{selectedCount} Cambridge Subjects</strong> with customized papers
+            </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              type="button"
-              className="btn btn--solid"
-              style={{ padding: '12px 24px', fontSize: '12px' }}
-              onClick={onClose}
-            >
-              Confirm Enrolment ({selectedCount})
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                className="btn btn--solid"
+                style={{ padding: '12px 24px', fontSize: '12px' }}
+                onClick={onClose}
+              >
+                Confirm Enrolment ({selectedCount})
+              </button>
+            </div>
           </div>
-        </div>
+        </>
+      )}
       </div>
     </div>
   );

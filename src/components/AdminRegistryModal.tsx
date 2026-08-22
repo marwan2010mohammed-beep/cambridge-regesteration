@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CandidateEnrollment } from '../types';
-import { Copy, Check, MessageSquare, Download, Trash2, Search, Lock, Unlock, ShieldCheck, Key, Eye, EyeOff, UserCheck, LogOut, AlertCircle } from 'lucide-react';
+import { CandidateEnrollment, ExamSubject } from '../types';
+import { generateStatementOfEntryPDF } from '../utils/pdfGenerator';
+import { Copy, Check, MessageSquare, Download, Trash2, Search, Lock, Unlock, ShieldCheck, Key, Eye, EyeOff, UserCheck, LogOut, AlertCircle, FileText } from 'lucide-react';
 
 interface AdminRegistryModalProps {
   enrollments: CandidateEnrollment[];
@@ -8,6 +9,7 @@ interface AdminRegistryModalProps {
   onUpdateStatus: (id: string, newStatus: CandidateEnrollment['status']) => void;
   onDeleteRecord: (id: string) => void;
   onClearAll: () => void;
+  subjects?: ExamSubject[];
 }
 
 // Authorized Admin Accounts
@@ -26,6 +28,7 @@ export function AdminRegistryModal({
   onUpdateStatus,
   onDeleteRecord,
   onClearAll,
+  subjects,
 }: AdminRegistryModalProps) {
   // Authentication State
   const [currentUser, setCurrentUser] = useState<string | null>(() => {
@@ -664,6 +667,27 @@ export function AdminRegistryModal({
                           <option value="DM Sent" style={{ background: '#111', color: '#fff' }}>DM Sent</option>
                           <option value="Enrolled & Verified" style={{ background: '#111', color: '#fff' }}>Enrolled & Verified</option>
                         </select>
+
+                        <button
+                          type="button"
+                          onClick={() => generateStatementOfEntryPDF(entry, subjects)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: 'rgba(59, 130, 246, 0.15)',
+                            border: '1px solid rgba(59, 130, 246, 0.4)',
+                            color: '#60a5fa',
+                            fontSize: '10px',
+                            padding: '3px 6px',
+                            fontFamily: 'var(--font-mono)',
+                            cursor: 'pointer',
+                          }}
+                          title="Generate & download official Cambridge Statement of Entry PDF for this candidate"
+                        >
+                          <FileText size={11} />
+                          <span>PDF SOE</span>
+                        </button>
 
                         <button
                           type="button"
