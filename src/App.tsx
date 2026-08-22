@@ -122,7 +122,7 @@ export default function App() {
         // Filter out previously saved test candidates so only actual admin and valid custom rosters remain
         const filtered = parsed.filter(
           (item) =>
-            item.email.toLowerCase() === 'marwanelnaggar@gmail.com' ||
+            item.email.toLowerCase() === 'john.doe@example.com' ||
             (item.email.toLowerCase() !== 'candidate@example.com' &&
               item.email.toLowerCase() !== 'student1@school.edu' &&
               item.email.toLowerCase() !== 'student2@school.edu')
@@ -135,7 +135,7 @@ export default function App() {
       // Fallback
     }
     return [
-      { email: 'marwanelnaggar@gmail.com', discord: '@marwan', candidateName: 'Marwan Elnaggar' },
+      { email: 'john.doe@example.com', discord: '@johndoe', candidateName: 'John Doe' },
     ];
   });
 

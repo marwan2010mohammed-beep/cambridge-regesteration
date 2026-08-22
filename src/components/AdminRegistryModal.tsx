@@ -3,6 +3,15 @@ import { CandidateEnrollment, ExamSubject, WebhookConfig, WebhookDispatchLog } f
 import { generateStatementOfEntryPDF } from '../utils/pdfGenerator';
 import { generateDiscordDMTemplate, DMTemplateType, DM_TEMPLATE_OPTIONS } from '../utils/discordDmGenerator';
 import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+import {
   getWebhookConfig,
   saveWebhookConfig,
   getWebhookLogs,
@@ -42,6 +51,7 @@ import {
   Radio,
   Settings,
   Activity,
+  BarChart3,
   RefreshCw,
   Zap,
   AlertTriangle,
@@ -63,7 +73,7 @@ export const AUTHORIZED_ADMINS = [
   { username: 'admin', password: 'cambridge2026', role: 'Super Administrator', badge: 'SUPERUSER' },
   { username: 'owner', password: 'cie_admin_2026', role: 'Site Owner', badge: 'OWNER' },
   { username: 'headmaster', password: 'exams2026', role: 'Exam Officer', badge: 'OFFICER' },
-  { username: 'marwan', password: 'admin2026', role: 'Lead Administrator', badge: 'DIRECTOR' },
+  { username: 'director', password: 'admin2026', role: 'Lead Administrator', badge: 'DIRECTOR' },
 ];
 
 const ADMIN_SESSION_STORAGE_KEY = 'cambridge_admin_auth_user_v1';
@@ -94,7 +104,7 @@ export function AdminRegistryModal({
   const [loginAttempts, setLoginAttempts] = useState(0);
 
   // Tab State
-  const [activeAdminTab, setActiveAdminTab] = useState<'candidates' | 'webhooks' | 'roster'>('candidates');
+  const [activeAdminTab, setActiveAdminTab] = useState<'candidates' | 'analytics' | 'webhooks' | 'roster'>('candidates');
 
   // Roster Management Local States
   const [newRosterEmail, setNewRosterEmail] = useState('');
@@ -176,6 +186,20 @@ export function AdminRegistryModal({
     setInputPassword('');
     setAuthError(null);
   };
+
+  const subjectDistribution = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    enrollments.forEach((env) => {
+      env.subjects.forEach((sub) => {
+        const key = `[${sub.code}] ${sub.name}`;
+        counts[key] = (counts[key] || 0) + 1;
+      });
+    });
+    return Object.entries(counts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 15); // limit to top 15 subjects
+  }, [enrollments]);
 
   const filtered = enrollments.filter((entry) => {
     const term = searchTerm.toLowerCase();
@@ -791,6 +815,28 @@ export function AdminRegistryModal({
 
               <button
                 type="button"
+                onClick={() => setActiveAdminTab('analytics')}
+                style={{
+                  background: activeAdminTab === 'analytics' ? 'rgba(234, 179, 8, 0.18)' : 'transparent',
+                  border: 'none',
+                  borderBottom: `2px solid ${activeAdminTab === 'analytics' ? '#eab308' : 'transparent'}`,
+                  color: activeAdminTab === 'analytics' ? '#ffffff' : 'var(--text-dim)',
+                  padding: '8px 14px',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <BarChart3 size={13} color={activeAdminTab === 'analytics' ? '#eab308' : 'var(--text-dim)'} />
+                <span>SUBJECT ANALYTICS</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => {
                   setActiveAdminTab('webhooks');
                   setWebhookLogs(getWebhookLogs());
@@ -1349,6 +1395,74 @@ export function AdminRegistryModal({
           </div>
         )}
 
+        {/* TAB ANALYTICS: SUBJECT DISTRIBUTION */}
+        {activeAdminTab === 'analytics' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minHeight: 0 }}>
+            <div
+              style={{
+                background: 'rgba(234, 179, 8, 0.08)',
+                border: '1px solid rgba(234, 179, 8, 0.3)',
+                padding: '12px 14px',
+                fontSize: '11px',
+                color: '#fef08a',
+                lineHeight: 1.5,
+              }}
+            >
+              <strong>Subject Distribution Analytics</strong>
+              <p style={{ margin: '4px 0 0', color: 'var(--text-dim)' }}>
+                Visualizing the distribution of Cambridge IGCSE subjects selected by candidates (Top 15 subjects by enrollment volume).
+              </p>
+            </div>
+
+            {subjectDistribution.length > 0 ? (
+              <div style={{ flex: 1, minHeight: '350px', background: 'rgba(0,0,0,0.15)', border: '1px solid var(--line)', borderRadius: '6px', padding: '16px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={subjectDistribution} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fill: 'var(--text-dim)', fontSize: 10, fontFamily: 'var(--font-mono)' }} 
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                      axisLine={{ stroke: '#444' }}
+                      tickLine={{ stroke: '#444' }}
+                    />
+                    <YAxis 
+                      allowDecimals={false}
+                      tick={{ fill: 'var(--text-dim)', fontSize: 10, fontFamily: 'var(--font-mono)' }}
+                      axisLine={{ stroke: '#444' }}
+                      tickLine={{ stroke: '#444' }}
+                    />
+                    <Tooltip
+                      contentStyle={{ 
+                        background: '#1e1f22', 
+                        border: '1px solid #3f4147', 
+                        borderRadius: '4px',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '11px',
+                        color: '#fff'
+                      }}
+                      cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                    />
+                    <Bar 
+                      dataKey="count" 
+                      name="Enrolled Candidates" 
+                      fill="#eab308" 
+                      radius={[4, 4, 0, 0]} 
+                      animationDuration={1000}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-dim)', fontSize: '12px' }}>
+                No subject enrollment data available yet.
+              </div>
+            )}
+          </div>
+        )}
+
         {/* TAB 2: DISCORD WEBHOOK & ADMIN ALERTS */}
         {activeAdminTab === 'webhooks' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -1673,7 +1787,7 @@ export function AdminRegistryModal({
                   <label style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Candidate Name (Optional)</label>
                   <input
                     type="text"
-                    placeholder="e.g. Marwan Elnaggar"
+                    placeholder="e.g. John Doe"
                     value={newRosterName}
                     onChange={(e) => setNewRosterName(e.target.value)}
                     style={{
@@ -1690,7 +1804,7 @@ export function AdminRegistryModal({
                   <label style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Pre-Approved Email *</label>
                   <input
                     type="email"
-                    placeholder="e.g. marwanelnaggar@gmail.com"
+                    placeholder="e.g. john.doe@example.com"
                     value={newRosterEmail}
                     onChange={(e) => setNewRosterEmail(e.target.value)}
                     required
@@ -1708,7 +1822,7 @@ export function AdminRegistryModal({
                   <label style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Discord Username *</label>
                   <input
                     type="text"
-                    placeholder="e.g. @marwan"
+                    placeholder="e.g. @johndoe"
                     value={newRosterDiscord}
                     onChange={(e) => setNewRosterDiscord(e.target.value)}
                     required
