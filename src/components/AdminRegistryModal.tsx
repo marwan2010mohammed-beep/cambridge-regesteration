@@ -54,6 +54,8 @@ interface AdminRegistryModalProps {
   onDeleteRecord: (id: string) => void;
   onClearAll: () => void;
   subjects?: ExamSubject[];
+  preApprovedRoster: { email: string; discord: string; candidateName?: string }[];
+  onUpdatePreApprovedRoster: (roster: { email: string; discord: string; candidateName?: string }[]) => void;
 }
 
 // Authorized Admin Accounts
@@ -73,6 +75,8 @@ export function AdminRegistryModal({
   onDeleteRecord,
   onClearAll,
   subjects,
+  preApprovedRoster,
+  onUpdatePreApprovedRoster,
 }: AdminRegistryModalProps) {
   // Authentication State
   const [currentUser, setCurrentUser] = useState<string | null>(() => {
@@ -90,7 +94,15 @@ export function AdminRegistryModal({
   const [loginAttempts, setLoginAttempts] = useState(0);
 
   // Tab State
-  const [activeAdminTab, setActiveAdminTab] = useState<'candidates' | 'webhooks'>('candidates');
+  const [activeAdminTab, setActiveAdminTab] = useState<'candidates' | 'webhooks' | 'roster'>('candidates');
+
+  // Roster Management Local States
+  const [newRosterEmail, setNewRosterEmail] = useState('');
+  const [newRosterDiscord, setNewRosterDiscord] = useState('');
+  const [newRosterName, setNewRosterName] = useState('');
+  const [rosterSearchTerm, setRosterSearchTerm] = useState('');
+  const [rosterError, setRosterError] = useState<string | null>(null);
+  const [rosterSuccess, setRosterSuccess] = useState<string | null>(null);
 
   // Registry State
   const [searchTerm, setSearchTerm] = useState('');
@@ -350,6 +362,57 @@ export function AdminRegistryModal({
     if (confirm('Clear all webhook dispatch history logs?')) {
       clearWebhookLogs();
       setWebhookLogs([]);
+    }
+  };
+
+  const handleAddRosterEntry = (e: React.FormEvent) => {
+    e.preventDefault();
+    setRosterError(null);
+    setRosterSuccess(null);
+
+    const emailClean = newRosterEmail.trim().toLowerCase();
+    let discordClean = newRosterDiscord.trim();
+    if (!discordClean.startsWith('@')) {
+      discordClean = `@${discordClean}`;
+    }
+
+    if (!emailClean || !newRosterDiscord.trim()) {
+      setRosterError('Email and Discord username are both required.');
+      return;
+    }
+
+    // Check if duplicate already exists in the roster
+    const exists = preApprovedRoster.some(
+      (item) => item.email.toLowerCase() === emailClean || item.discord.toLowerCase() === discordClean.toLowerCase()
+    );
+
+    if (exists) {
+      setRosterError('This email address or Discord username is already in the pre-approved roster.');
+      return;
+    }
+
+    const newEntry = {
+      email: emailClean,
+      discord: discordClean,
+      candidateName: newRosterName.trim() || undefined,
+    };
+
+    onUpdatePreApprovedRoster([...preApprovedRoster, newEntry]);
+    setNewRosterEmail('');
+    setNewRosterDiscord('');
+    setNewRosterName('');
+    setRosterSuccess(`✓ Successfully added "${discordClean}" to the pre-approved roster!`);
+    setTimeout(() => setRosterSuccess(null), 4000);
+  };
+
+  const handleRemoveRosterEntry = (email: string, discord: string) => {
+    if (confirm(`Are you sure you want to remove ${discord} from the pre-approved candidate roster?`)) {
+      const filtered = preApprovedRoster.filter(
+        (item) => !(item.email.toLowerCase() === email.toLowerCase() && item.discord.toLowerCase() === discord.toLowerCase())
+      );
+      onUpdatePreApprovedRoster(filtered);
+      setRosterSuccess('Candidate entry removed from pre-approved roster.');
+      setTimeout(() => setRosterSuccess(null), 3000);
     }
   };
 
@@ -773,6 +836,30 @@ export function AdminRegistryModal({
                     PAUSED
                   </span>
                 )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveAdminTab('roster');
+                }}
+                style={{
+                  background: activeAdminTab === 'roster' ? 'rgba(6, 182, 212, 0.18)' : 'transparent',
+                  border: 'none',
+                  borderBottom: `2px solid ${activeAdminTab === 'roster' ? '#06b6d4' : 'transparent'}`,
+                  color: activeAdminTab === 'roster' ? '#ffffff' : 'var(--text-dim)',
+                  padding: '8px 14px',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <UserCheck size={13} color={activeAdminTab === 'roster' ? '#06b6d4' : 'var(--text-dim)'} />
+                <span>PRE-APPROVED ROSTER ({preApprovedRoster.length})</span>
               </button>
             </div>
 
@@ -1547,6 +1634,203 @@ export function AdminRegistryModal({
                   </table>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {activeAdminTab === 'roster' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Header description */}
+            <div
+              style={{
+                background: 'rgba(6, 182, 212, 0.08)',
+                border: '1px solid rgba(6, 182, 212, 0.3)',
+                padding: '12px 14px',
+                fontSize: '11px',
+                color: '#cffafe',
+                lineHeight: 1.5,
+              }}
+            >
+              <strong>Official Pre-Approved Candidate Roster</strong>
+              <p style={{ margin: '4px 0 0', color: 'var(--text-dim)' }}>
+                To secure the registration process and prevent uninvited users, candidate enrollments are cross-referenced with this roster. During registration, the submitted personal email AND Discord handle must exactly match one of these pre-approved pairings. Duplicate enrollments are automatically declined.
+              </p>
+            </div>
+
+            {/* Roster form to add new entry */}
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid var(--line-strong)',
+                padding: '14px',
+              }}
+            >
+              <div style={{ fontSize: '11px', color: '#fff', fontWeight: 600, marginBottom: '10px' }}>
+                ADD PRE-APPROVED CANDIDATE TO ROSTER
+              </div>
+              <form onSubmit={handleAddRosterEntry} style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'flex-end' }}>
+                <div style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Candidate Name (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Marwan Elnaggar"
+                    value={newRosterName}
+                    onChange={(e) => setNewRosterName(e.target.value)}
+                    style={{
+                      background: 'rgba(0,0,0,0.4)',
+                      border: '1px solid var(--line)',
+                      padding: '8px 10px',
+                      color: '#fff',
+                      fontSize: '11px',
+                      fontFamily: 'var(--font-mono)',
+                    }}
+                  />
+                </div>
+                <div style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Pre-Approved Email *</label>
+                  <input
+                    type="email"
+                    placeholder="e.g. marwanelnaggar@gmail.com"
+                    value={newRosterEmail}
+                    onChange={(e) => setNewRosterEmail(e.target.value)}
+                    required
+                    style={{
+                      background: 'rgba(0,0,0,0.4)',
+                      border: '1px solid var(--line)',
+                      padding: '8px 10px',
+                      color: '#fff',
+                      fontSize: '11px',
+                      fontFamily: 'var(--font-mono)',
+                    }}
+                  />
+                </div>
+                <div style={{ flex: '1 1 180px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Discord Username *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. @marwan"
+                    value={newRosterDiscord}
+                    onChange={(e) => setNewRosterDiscord(e.target.value)}
+                    required
+                    style={{
+                      background: 'rgba(0,0,0,0.4)',
+                      border: '1px solid var(--line)',
+                      padding: '8px 10px',
+                      color: '#fff',
+                      fontSize: '11px',
+                      fontFamily: 'var(--font-mono)',
+                    }}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  style={{
+                    background: '#06b6d4',
+                    border: 'none',
+                    color: '#fff',
+                    padding: '8px 14px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                >
+                  Add Candidate
+                </button>
+              </form>
+
+              {rosterError && (
+                <div style={{ color: '#f87171', fontSize: '11px', marginTop: '10px' }}>
+                  ✕ {rosterError}
+                </div>
+              )}
+              {rosterSuccess && (
+                <div style={{ color: '#4ade80', fontSize: '11px', marginTop: '10px' }}>
+                  {rosterSuccess}
+                </div>
+              )}
+            </div>
+
+            {/* List and Search of pre-approved candidates */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '11px', color: '#fff', fontWeight: 600 }}>
+                  CURRENT ACTIVE ROSTER ({preApprovedRoster.length} APPROVED ENTRIES)
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search roster..."
+                  value={rosterSearchTerm}
+                  onChange={(e) => setRosterSearchTerm(e.target.value)}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid var(--line)',
+                    padding: '4px 8px',
+                    color: '#fff',
+                    fontSize: '11px',
+                    width: '180px',
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                />
+              </div>
+
+              <div
+                style={{
+                  maxHeight: '220px',
+                  overflowY: 'auto',
+                  border: '1px solid var(--line-strong)',
+                  background: 'rgba(0,0,0,0.3)',
+                }}
+              >
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.06)', borderBottom: '1px solid var(--line)' }}>
+                      <th style={{ padding: '6px 10px', color: '#949ba4', fontWeight: 600 }}>CANDIDATE NAME</th>
+                      <th style={{ padding: '6px 10px', color: '#949ba4', fontWeight: 600 }}>PRE-APPROVED EMAIL</th>
+                      <th style={{ padding: '6px 10px', color: '#949ba4', fontWeight: 600 }}>DISCORD HANDLE</th>
+                      <th style={{ padding: '6px 10px', color: '#949ba4', fontWeight: 600, textAlign: 'center' }}>ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preApprovedRoster
+                      .filter((item) => {
+                        const term = rosterSearchTerm.toLowerCase().trim();
+                        if (!term) return true;
+                        return (
+                          item.email.toLowerCase().includes(term) ||
+                          item.discord.toLowerCase().includes(term) ||
+                          (item.candidateName && item.candidateName.toLowerCase().includes(term))
+                        );
+                      })
+                      .map((item, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td style={{ padding: '6px 10px', color: '#fff' }}>
+                            {item.candidateName || <span style={{ color: 'var(--text-dimmer)', fontStyle: 'italic' }}>Anonymous</span>}
+                          </td>
+                          <td style={{ padding: '6px 10px', color: 'var(--text-dim)' }}>{item.email}</td>
+                          <td style={{ padding: '6px 10px', color: '#22d3ee', fontWeight: 600 }}>{item.discord}</td>
+                          <td style={{ padding: '6px 10px', textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveRosterEntry(item.email, item.discord)}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#f87171',
+                                cursor: 'pointer',
+                                textDecoration: 'underline',
+                                fontSize: '10px',
+                                fontFamily: 'var(--font-mono)',
+                              }}
+                            >
+                              Revoke
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}

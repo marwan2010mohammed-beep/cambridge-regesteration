@@ -356,7 +356,7 @@ export function ExamScheduleVisualizer({
         }}
       >
         {/* View mode toggle tabs */}
-        <div style={{ display: 'flex', gap: '6px' }}>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           <button
             type="button"
             onClick={() => setViewMode('calendar')}
@@ -1140,6 +1140,7 @@ function MonthGrid({
 
   return (
     <div
+      className="mobile-scrollable-calendar"
       style={{
         background: 'rgba(0, 0, 0, 0.3)',
         border: '1px solid var(--line)',
@@ -1147,6 +1148,8 @@ function MonthGrid({
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
+        minWidth: '300px',
+        overflowX: 'auto',
       }}
     >
       <div style={{ fontSize: '12px', fontWeight: 700, color: '#ffffff', letterSpacing: '0.05em' }}>

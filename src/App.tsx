@@ -16,35 +16,7 @@ import { MessageSquare, Mail, ShieldAlert, CheckCircle2, Copy, Check, BookOpen, 
 
 export const DISCORD_INVITE_URL = 'https://discord.gg/YD3hR9Sn54';
 
-const INITIAL_ENROLLMENTS: CandidateEnrollment[] = [
-  {
-    id: 'CIE-8412',
-    email: 'alex.candidate@cambridge-prep.edu',
-    discord: 'alex_cie#4011',
-    candidateName: 'Alex Carter',
-    centerNumber: 'EG042',
-    subjects: [
-      { code: '0580', name: 'Mathematics', tier: 'Extended' },
-      { code: '0625', name: 'Physics', tier: 'Extended' },
-      { code: '0620', name: 'Chemistry', tier: 'Extended' },
-    ],
-    timestamp: '2026-08-20 14:32:10 UTC',
-    status: 'DM Sent',
-  },
-  {
-    id: 'CIE-9923',
-    email: 'layla.mansoor@alazhar-school.org',
-    discord: '@layla_igcse',
-    candidateName: 'Layla Mansoor',
-    centerNumber: 'EG118',
-    subjects: [
-      { code: '0478', name: 'Computer Science', tier: 'Standard' },
-      { code: '0580', name: 'Mathematics', tier: 'Extended' },
-    ],
-    timestamp: '2026-08-21 09:15:44 UTC',
-    status: 'Pending Admin DM',
-  },
-];
+const INITIAL_ENROLLMENTS: CandidateEnrollment[] = [];
 
 const LOCAL_STORAGE_KEY = 'cambridge_igcse_enrollments_v1';
 const LOCAL_STORAGE_SUBJECTS_KEY = 'cambridge_igcse_selected_subjects_v1';
@@ -117,7 +89,15 @@ export default function App() {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved) as CandidateEnrollment[];
+        // Auto-purge any previously saved test candidate records
+        return parsed.filter(
+          (rec) =>
+            rec.email !== 'alex.candidate@cambridge-prep.edu' &&
+            rec.email !== 'layla.mansoor@alazhar-school.org' &&
+            rec.candidateName !== 'Alex Carter' &&
+            rec.candidateName !== 'Layla Mansoor'
+        );
       }
     } catch {
       // Fallback
@@ -132,6 +112,40 @@ export default function App() {
       // Ignored
     }
   }, [enrollments]);
+
+  // Pre-approved Candidate Roster State
+  const [preApprovedRoster, setPreApprovedRoster] = useState<{ email: string; discord: string; candidateName?: string }[]>(() => {
+    try {
+      const saved = localStorage.getItem('cambridge_igcse_pre_approved_roster_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved) as { email: string; discord: string; candidateName?: string }[];
+        // Filter out previously saved test candidates so only actual admin and valid custom rosters remain
+        const filtered = parsed.filter(
+          (item) =>
+            item.email.toLowerCase() === 'marwanelnaggar@gmail.com' ||
+            (item.email.toLowerCase() !== 'candidate@example.com' &&
+              item.email.toLowerCase() !== 'student1@school.edu' &&
+              item.email.toLowerCase() !== 'student2@school.edu')
+        );
+        if (filtered.length > 0) {
+          return filtered;
+        }
+      }
+    } catch {
+      // Fallback
+    }
+    return [
+      { email: 'marwanelnaggar@gmail.com', discord: '@marwan', candidateName: 'Marwan Elnaggar' },
+    ];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cambridge_igcse_pre_approved_roster_v1', JSON.stringify(preApprovedRoster));
+    } catch {
+      // Ignored
+    }
+  }, [preApprovedRoster]);
 
   // Click outside to close inline search dropdown
   useEffect(() => {
@@ -171,11 +185,14 @@ export default function App() {
   useEffect(() => {
     if (menuOpen) {
       document.body.classList.add('menu-open');
+      document.documentElement.classList.add('menu-open');
     } else {
       document.body.classList.remove('menu-open');
+      document.documentElement.classList.remove('menu-open');
     }
     return () => {
       document.body.classList.remove('menu-open');
+      document.documentElement.classList.remove('menu-open');
     };
   }, [menuOpen]);
 
@@ -214,18 +231,39 @@ export default function App() {
     setDiscordTouched(true);
 
     if (!emailValidation.isValid) {
-      alert(emailValidation.error || 'Please enter a valid candidate email address.');
+      setFeedbackMessage(emailValidation.error || 'Please enter a valid candidate email address.');
+      setActiveModal('error');
       return;
     }
     if (!discordValidation.isValid) {
-      alert(discordValidation.error || 'Please enter a valid Discord handle (e.g. @username).');
+      setFeedbackMessage(discordValidation.error || 'Please enter a valid Discord handle (e.g. @username).');
+      setActiveModal('error');
+      return;
+    }
+    if (selectedSubjectsList.length === 0) {
+      setFeedbackMessage('Please select at least 1 Cambridge IGCSE paper component from the search bar or catalog to enroll.');
+      setActiveModal('error');
+      return;
+    }
+
+    const targetEmail = emailValidation.normalized || email.trim().toLowerCase();
+    const targetDiscord = discordValidation.normalized || (discord.trim().startsWith('@') ? discord.trim() : `@${discord.trim()}`);
+
+    // Check if duplicate enrollment exists
+    const hasDuplicate = enrollments.some(
+      (rec) => rec.email.toLowerCase() === targetEmail.toLowerCase() || rec.discord.toLowerCase() === targetDiscord.toLowerCase()
+    );
+
+    if (hasDuplicate) {
+      setFeedbackMessage('An enrollment has already been submitted for this email address or Discord handle. Duplicate enrollments are not allowed.');
+      setActiveModal('error');
       return;
     }
 
     const selected = subjects.filter((s) => s.selected);
     if (selected.length === 0) {
-      alert('Please select at least 1 Cambridge IGCSE paper component to enroll.');
-      setActiveModal('papers');
+      setFeedbackMessage('Please select at least 1 Cambridge IGCSE paper component to enroll.');
+      setActiveModal('error');
       return;
     }
 
@@ -1317,20 +1355,13 @@ export default function App() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
               <UiverseButton
                 type="submit"
-                variant={isFormValid ? 'default' : 'ghost'}
+                variant="default"
                 size="lg"
                 fullWidth
                 id="btn-proceed-email"
-                disabled={!isFormValid}
-                title={
-                  isFormValid
-                    ? 'Submit candidate registration to Cambridge examination administrators'
-                    : 'Please complete email, Discord handle, and at least 1 subject selection to enable enrollment'
-                }
+                title="Submit candidate registration to Cambridge examination administrators"
               >
-                {isFormValid
-                  ? '✓ Enroll Papers via Discord & Email'
-                  : 'Complete 3 Requirements Above to Enroll'}
+                ✓ Enroll Papers via Discord & Email
               </UiverseButton>
 
               <UiverseButton
@@ -1436,6 +1467,8 @@ export default function App() {
           onUpdateStatus={handleUpdateStatus}
           onDeleteRecord={handleDeleteRecord}
           onClearAll={handleClearAllRecords}
+          preApprovedRoster={preApprovedRoster}
+          onUpdatePreApprovedRoster={setPreApprovedRoster}
         />
       )}
 
@@ -1576,6 +1609,7 @@ export default function App() {
                 {activeModal === 'privacy' && '[ DATA PRIVACY NOTICE ]'}
                 {activeModal === 'terms' && '[ EXAMINATION SERVICE CONTRACT ]'}
                 {activeModal === 'success' && '[ REGISTRATION & ENROLLMENT RECEIPT ]'}
+                {activeModal === 'error' && '[ VALIDATION REQUIRED ]'}
               </span>
               <button
                 type="button"
@@ -1692,6 +1726,7 @@ export default function App() {
                 <p style={{ fontSize: '13px', color: 'var(--text-dim)', lineHeight: 1.6, marginBottom: '16px' }}>
                   Register for the Cambridge IGCSE Oct/Nov exam session. Website owners and admins will DM your Discord account to finalize candidate registration.
                 </p>
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
                   <input
                     type="text"
@@ -1832,13 +1867,12 @@ export default function App() {
 
                 <UiverseButton
                   type="submit"
-                  variant={isFormValid ? 'default' : 'ghost'}
+                  variant="default"
                   size="md"
                   fullWidth
-                  disabled={!isFormValid}
-                  title={isFormValid ? 'Submit registration' : 'Complete email, Discord handle, and at least 1 subject to submit'}
+                  title="Submit registration"
                 >
-                  {isFormValid ? '✓ Submit Registration & Notify Admins' : 'Complete Requirements to Submit'}
+                  ✓ Submit Registration & Notify Admins
                 </UiverseButton>
               </form>
             )}
@@ -2018,6 +2052,32 @@ export default function App() {
                     onClick={() => setActiveModal(null)}
                   >
                     Close
+                  </UiverseButton>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Body: Error Feedback */}
+            {activeModal === 'error' && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                  <AlertTriangle size={22} color="#f87171" />
+                  <span style={{ fontSize: '14px', color: '#f87171', fontWeight: 600 }}>
+                    VALIDATION ERROR
+                  </span>
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--text-dim)', lineHeight: 1.6, marginBottom: '24px', whiteSpace: 'pre-wrap' }}>
+                  {feedbackMessage}
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <UiverseButton
+                    type="button"
+                    variant="default"
+                    size="md"
+                    fullWidth
+                    onClick={() => setActiveModal(null)}
+                  >
+                    Got it, let me fix that
                   </UiverseButton>
                 </div>
               </div>
@@ -2255,6 +2315,219 @@ export default function App() {
                     Done
                   </UiverseButton>
                 </div>
+              </div>
+            )}
+
+            {/* Modal Body: Candidate Portal Lookup */}
+            {activeModal === 'portal' && (
+              <div>
+                {(() => {
+                  const matchedRecord = enrollments.find(
+                    (rec) => rec.email.toLowerCase() === email.trim().toLowerCase()
+                  );
+
+                  if (matchedRecord) {
+                    return (
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                          <CheckCircle2 size={18} color="#4ade80" />
+                          <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600, letterSpacing: '0.05em' }}>
+                            CANDIDATE ENTRY RECORD FOUND
+                          </span>
+                        </div>
+
+                        <p style={{ fontSize: '12px', color: 'var(--text-dim)', lineHeight: 1.5, marginBottom: '16px' }}>
+                          Welcome, <strong>{matchedRecord.candidateName || 'Cambridge Candidate'}</strong>. Your official statement of entry is verified and logged under Center Number <strong>EG042</strong>.
+                        </p>
+
+                        <div
+                          style={{
+                            background: 'rgba(255,255,255,0.03)',
+                            border: '1px solid var(--line-strong)',
+                            padding: '12px 14px',
+                            marginBottom: '16px',
+                            fontSize: '12px',
+                            lineHeight: 1.6,
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span style={{ color: 'var(--text-dim)' }}>Candidate ID:</span>
+                            <span style={{ color: '#fff', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{matchedRecord.id}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span style={{ color: 'var(--text-dim)' }}>Registered Email:</span>
+                            <span style={{ color: '#fff' }}>{matchedRecord.email}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span style={{ color: 'var(--text-dim)' }}>Discord (for admin DM):</span>
+                            <span style={{ color: '#60a5fa', fontWeight: 500 }}>{matchedRecord.discord}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span style={{ color: 'var(--text-dim)' }}>Admission Status:</span>
+                            <span style={{ color: '#fbbf24', background: 'rgba(251,191,36,0.12)', padding: '1px 5px', fontSize: '11px' }}>
+                              {matchedRecord.status}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ marginBottom: '16px' }}>
+                          <div style={{ color: 'var(--text-dim)', fontSize: '11px', fontWeight: 600, marginBottom: '6px', letterSpacing: '0.04em' }}>
+                            YOUR SELECTED PAPERS ({matchedRecord.subjects.length}):
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                            {matchedRecord.subjects.map((sub) => {
+                              const papersText = sub.selectedPapers && sub.selectedPapers.length > 0
+                                ? sub.selectedPapers.map(p => p.match(/Paper\s*\d+/i)?.[0] || p).join(', ')
+                                : 'All Papers';
+                              return (
+                                <div
+                                  key={sub.code}
+                                  style={{
+                                    fontSize: '11px',
+                                    background: 'rgba(255,255,255,0.02)',
+                                    border: '1px solid var(--line)',
+                                    padding: '5px 8px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    color: '#fff',
+                                  }}
+                                >
+                                  <span>
+                                    <strong style={{ color: '#60a5fa' }}>[{sub.code}]</strong> {sub.name}
+                                  </span>
+                                  <span style={{ color: '#a3e635', fontSize: '10px', background: 'rgba(163,230,53,0.1)', padding: '1px 4px' }}>
+                                    {papersText}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            background: 'rgba(37, 99, 235, 0.08)',
+                            border: '1px solid rgba(96, 165, 250, 0.3)',
+                            padding: '12px',
+                            marginBottom: '16px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: '8px',
+                          }}
+                        >
+                          <div style={{ flex: '1 1 200px' }}>
+                            <div style={{ color: '#fff', fontSize: '12px', fontWeight: 600 }}>Official Statement of Entry (PDF)</div>
+                            <div style={{ color: 'var(--text-dim)', fontSize: '10px', marginTop: '2px' }}>Download your comprehensive scheduling receipt.</div>
+                          </div>
+                          {isGeneratingPDF ? (
+                            <UiverseLoader label="Compiling..." size="xs" />
+                          ) : (
+                            <UiverseButton
+                              type="button"
+                              variant={pdfDownloaded ? 'emerald' : 'cyan'}
+                              size="xs"
+                              onClick={() => {
+                                setIsGeneratingPDF(true);
+                                setTimeout(() => {
+                                  generateStatementOfEntryPDF(matchedRecord, subjects);
+                                  setPdfDownloaded(true);
+                                  setIsGeneratingPDF(false);
+                                }, 600);
+                              }}
+                              icon={pdfDownloaded ? <FileCheck size={12} /> : <Download size={12} />}
+                            >
+                              Download PDF
+                            </UiverseButton>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <UiverseButton
+                            type="button"
+                            variant="cyan"
+                            size="sm"
+                            style={{ flex: 1 }}
+                            onClick={() => setActiveModal('timetable')}
+                            icon={<Calendar size={13} />}
+                          >
+                            View Live Timetable & Clashes
+                          </UiverseButton>
+                          <UiverseButton
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setActiveModal(null)}
+                          >
+                            Done
+                          </UiverseButton>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                        <AlertTriangle size={18} color="#f87171" />
+                        <span style={{ fontSize: '13px', color: '#f87171', fontWeight: 600, letterSpacing: '0.05em' }}>
+                          NO REGISTERED ENTRY FOUND
+                        </span>
+                      </div>
+
+                      <p style={{ fontSize: '12px', color: 'var(--text-dim)', lineHeight: 1.5, marginBottom: '16px' }}>
+                        We could not locate any active Cambridge Oct/Nov candidate registration for the email address:{' '}
+                        <strong style={{ color: '#fff', wordBreak: 'break-all' }}>{email || 'None provided'}</strong>.
+                      </p>
+
+                      <div
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.05)',
+                          border: '1px solid rgba(239, 68, 68, 0.2)',
+                          padding: '12px',
+                          marginBottom: '20px',
+                          fontSize: '11px',
+                          color: 'var(--text-dim)',
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        <div style={{ fontWeight: 600, color: '#f87171', marginBottom: '4px' }}>How to Resolve:</div>
+                        <ul style={{ margin: 0, paddingLeft: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <li>Verify that the email entered on the main page is correct.</li>
+                          <li>Ensure your email is on the <strong>Pre-Approved Candidate Roster</strong>.</li>
+                          <li>Complete your subject selections and click <strong>Enroll Papers via Discord & Email</strong> to submit your first registration.</li>
+                        </ul>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <UiverseButton
+                          type="button"
+                          variant="cyan"
+                          size="sm"
+                          style={{ flex: 1 }}
+                          onClick={() => {
+                            setActiveModal(null);
+                            // Auto focus the email field to help the user
+                            const emailInput = document.getElementById('candidate-email') as HTMLInputElement;
+                            emailInput?.focus();
+                          }}
+                        >
+                          Correct Email / Register Now
+                        </UiverseButton>
+                        <UiverseButton
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setActiveModal(null)}
+                        >
+                          Close
+                        </UiverseButton>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
