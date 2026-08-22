@@ -7,7 +7,8 @@ import { ExamSubject, CandidateEnrollment } from './types';
 import { ExamScheduleVisualizer } from './components/ExamScheduleVisualizer';
 import { generateTimetableSummary } from './data/examSchedule';
 import { generateStatementOfEntryPDF } from './utils/pdfGenerator';
-import { MessageSquare, Mail, ShieldAlert, CheckCircle2, Copy, Check, BookOpen, Search, X, Plus, Layers, ExternalLink, ArrowUpRight, Radio, Users, Calendar, AlertTriangle, Clock, FileText, Download, FileCheck } from 'lucide-react';
+import { validateEmail, validateDiscordHandle } from './utils/validation';
+import { MessageSquare, Mail, ShieldAlert, CheckCircle2, Copy, Check, BookOpen, Search, X, Plus, Layers, ExternalLink, ArrowUpRight, Radio, Users, Calendar, AlertTriangle, Clock, FileText, Download, FileCheck, ShieldCheck } from 'lucide-react';
 
 export const DISCORD_INVITE_URL = 'https://discord.gg/YD3hR9Sn54';
 
@@ -79,6 +80,18 @@ export default function App() {
   const [lastEnrolledRecord, setLastEnrolledRecord] = useState<CandidateEnrollment | null>(null);
   const [copiedDiscord, setCopiedDiscord] = useState(false);
   const [pdfDownloaded, setPdfDownloaded] = useState(false);
+
+  // Live input touch / interaction state for validation styling
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [discordTouched, setDiscordTouched] = useState(false);
+
+  // Real-time live checks for Email and Discord username
+  const emailValidation = useMemo(() => validateEmail(email), [email]);
+  const discordValidation = useMemo(() => validateDiscordHandle(discord), [discord]);
+  const selectedCount = useMemo(() => subjects.filter((s) => s.selected).length, [subjects]);
+
+  // Submit button is enabled only when all live validation checks pass
+  const isFormValid = emailValidation.isValid && discordValidation.isValid && selectedCount > 0;
 
   // Save selected subject codes to local storage
   useEffect(() => {
@@ -188,12 +201,15 @@ export default function App() {
 
   const handleEnrollmentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) {
-      alert('Please enter your candidate email address.');
+    setEmailTouched(true);
+    setDiscordTouched(true);
+
+    if (!emailValidation.isValid) {
+      alert(emailValidation.error || 'Please enter a valid candidate email address.');
       return;
     }
-    if (!discord.trim()) {
-      alert('Please enter your Discord username so website admins can DM you to confirm papers.');
+    if (!discordValidation.isValid) {
+      alert(discordValidation.error || 'Please enter a valid Discord handle (e.g. @username).');
       return;
     }
 
@@ -206,8 +222,8 @@ export default function App() {
 
     const newRecord: CandidateEnrollment = {
       id: `CIE-${Math.floor(1000 + Math.random() * 9000)}`,
-      email: email.trim(),
-      discord: discord.trim().startsWith('@') ? discord.trim() : `@${discord.trim()}`,
+      email: emailValidation.normalized || email.trim(),
+      discord: discordValidation.normalized || (discord.trim().startsWith('@') ? discord.trim() : `@${discord.trim()}`),
       candidateName: candidateName.trim() || undefined,
       centerNumber: centerNumber.trim() || undefined,
       subjects: selected.map((s) => ({
@@ -228,6 +244,8 @@ export default function App() {
     // Immediately clear all personal information, input fields, and subject/paper selections
     setEmail('');
     setDiscord('');
+    setEmailTouched(false);
+    setDiscordTouched(false);
     setCandidateName('');
     setCenterNumber('');
     setInlineSubjectSearch('');
@@ -393,8 +411,6 @@ export default function App() {
       setEnrollments([]);
     }
   };
-
-  const selectedCount = subjects.filter((s) => s.selected).length;
 
   const timetableSummary = useMemo(() => {
     return generateTimetableSummary(subjects);
@@ -733,32 +749,77 @@ export default function App() {
             noValidate
             onSubmit={handleEnrollmentSubmit}
           >
-            {/* Email Field */}
-            <div className="input-field-wrapper">
-              <span className="input-field-icon" aria-hidden="true">
-                <Mail size={15} />
-              </span>
-              <label htmlFor="candidate-email" className="sr-only">
-                Personal Email
-              </label>
-              <input
-                type="email"
-                id="candidate-email"
-                className="email-field email-field--with-icon"
-                placeholder="Personal Email"
-                aria-label="Personal Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-                required
-              />
-            </div>
-
-            {/* Discord Username Field & Server Link */}
+            {/* Email Field with Live Check */}
             <div>
               <div className="input-field-wrapper">
                 <span className="input-field-icon" aria-hidden="true">
-                  <MessageSquare size={15} />
+                  <Mail size={15} color={email ? (emailValidation.isValid ? '#4ade80' : '#f87171') : 'var(--text-dim)'} />
+                </span>
+                <label htmlFor="candidate-email" className="sr-only">
+                  Personal Email
+                </label>
+                <input
+                  type="email"
+                  id="candidate-email"
+                  className="email-field email-field--with-icon"
+                  placeholder="Personal Email (e.g. candidate@example.com)"
+                  aria-label="Personal Email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (!emailTouched) setEmailTouched(true);
+                  }}
+                  onBlur={() => setEmailTouched(true)}
+                  autoComplete="email"
+                  required
+                  style={{
+                    borderBottomColor: email
+                      ? emailValidation.isValid
+                        ? 'rgba(74, 222, 128, 0.7)'
+                        : 'rgba(248, 113, 113, 0.7)'
+                      : undefined,
+                  }}
+                />
+                {email && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      right: '4px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    {emailValidation.isValid ? (
+                      <CheckCircle2 size={15} color="#4ade80" />
+                    ) : (
+                      <AlertTriangle size={15} color="#f87171" />
+                    )}
+                  </span>
+                )}
+              </div>
+
+              {/* Email Live Feedback Message */}
+              {email && emailValidation.isValid && (
+                <div className="form-validation-feedback is-valid">
+                  <CheckCircle2 size={11} />
+                  <span>Valid candidate email ({emailValidation.normalized})</span>
+                </div>
+              )}
+              {(email || emailTouched) && !emailValidation.isValid && (
+                <div className="form-validation-feedback is-invalid">
+                  <AlertTriangle size={11} />
+                  <span>{emailValidation.error}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Discord Username Field with Live Check & Server Link */}
+            <div>
+              <div className="input-field-wrapper">
+                <span className="input-field-icon" aria-hidden="true">
+                  <MessageSquare size={15} color={discord ? (discordValidation.isValid ? '#4ade80' : '#f87171') : 'var(--text-dim)'} />
                 </span>
                 <label htmlFor="candidate-discord" className="sr-only">
                   Discord Username
@@ -767,15 +828,64 @@ export default function App() {
                   type="text"
                   id="candidate-discord"
                   className="email-field email-field--with-icon"
-                  placeholder="Discord Username (e.g. @candidate or handle)"
+                  placeholder="Discord Username (e.g. @candidate or username)"
                   aria-label="Discord Username"
                   value={discord}
-                  onChange={(e) => setDiscord(e.target.value)}
+                  onChange={(e) => {
+                    setDiscord(e.target.value);
+                    if (!discordTouched) setDiscordTouched(true);
+                  }}
+                  onBlur={() => setDiscordTouched(true)}
                   autoComplete="off"
                   required
+                  style={{
+                    borderBottomColor: discord
+                      ? discordValidation.isValid
+                        ? 'rgba(74, 222, 128, 0.7)'
+                        : 'rgba(248, 113, 113, 0.7)'
+                      : undefined,
+                  }}
                 />
+                {discord && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      right: '4px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    {discordValidation.isValid ? (
+                      <CheckCircle2 size={15} color="#4ade80" />
+                    ) : (
+                      <AlertTriangle size={15} color="#f87171" />
+                    )}
+                  </span>
+                )}
               </div>
-              <div className="form-discord-link-badge" style={{ marginTop: '4px' }}>
+
+              {/* Discord Live Feedback Message */}
+              {discord && discordValidation.isValid && (
+                <div className="form-validation-feedback is-valid">
+                  <CheckCircle2 size={11} />
+                  <span>Valid Discord handle: <strong style={{ color: '#4ade80' }}>{discordValidation.normalized}</strong> (Admins will DM this handle)</span>
+                </div>
+              )}
+              {(discord || discordTouched) && !discordValidation.isValid && (
+                <div className="form-validation-feedback is-invalid">
+                  <AlertTriangle size={11} />
+                  <span>{discordValidation.error}</span>
+                </div>
+              )}
+              {!discord && !discordTouched && (
+                <div className="form-validation-feedback is-hint">
+                  <span>Admins will DM your Discord username to confirm paper components.</span>
+                </div>
+              )}
+
+              <div className="form-discord-link-badge" style={{ marginTop: '6px' }}>
                 <span>Official Discord Server:</span>
                 <a
                   href={DISCORD_INVITE_URL}
@@ -1164,13 +1274,169 @@ export default function App() {
               </div>
             )}
 
-            {/* Submit Buttons */}
+            {/* Live Registration Verification Checklist */}
+            <div className="form-live-checklist" id="registration-requirements-checklist">
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '4px',
+                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  paddingBottom: '4px',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '10px',
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    color: 'var(--text-dim)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <ShieldCheck size={12} color={isFormValid ? '#4ade80' : '#60a5fa'} />
+                  <span>REGISTRATION REQUIREMENTS CHECK</span>
+                </span>
+                <span
+                  style={{
+                    fontSize: '10px',
+                    color: isFormValid ? '#4ade80' : 'var(--text-dimmer)',
+                    fontWeight: 700,
+                  }}
+                >
+                  {isFormValid ? '✓ READY TO ENROLL' : `${(emailValidation.isValid ? 1 : 0) + (discordValidation.isValid ? 1 : 0) + (selectedCount > 0 ? 1 : 0)} / 3 COMPLETE`}
+                </span>
+              </div>
+
+              {/* Requirement 1: Candidate Email */}
+              <div
+                className={`form-live-checklist-item ${
+                  emailValidation.isValid
+                    ? 'is-passed'
+                    : email && emailTouched
+                    ? 'is-error'
+                    : 'is-pending'
+                }`}
+              >
+                {emailValidation.isValid ? (
+                  <CheckCircle2 size={12} color="#4ade80" />
+                ) : email && emailTouched ? (
+                  <AlertTriangle size={12} color="#f87171" />
+                ) : (
+                  <div
+                    style={{
+                      width: 10,
+                      height: 10,
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      borderRadius: '50%',
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
+                <span>
+                  Candidate Email:{' '}
+                  {emailValidation.isValid ? (
+                    <strong style={{ color: '#4ade80' }}>Verified ({emailValidation.normalized})</strong>
+                  ) : email ? (
+                    <span style={{ color: '#f87171' }}>Invalid format</span>
+                  ) : (
+                    'Required (valid email address)'
+                  )}
+                </span>
+              </div>
+
+              {/* Requirement 2: Discord Username */}
+              <div
+                className={`form-live-checklist-item ${
+                  discordValidation.isValid
+                    ? 'is-passed'
+                    : discord && discordTouched
+                    ? 'is-error'
+                    : 'is-pending'
+                }`}
+              >
+                {discordValidation.isValid ? (
+                  <CheckCircle2 size={12} color="#4ade80" />
+                ) : discord && discordTouched ? (
+                  <AlertTriangle size={12} color="#f87171" />
+                ) : (
+                  <div
+                    style={{
+                      width: 10,
+                      height: 10,
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      borderRadius: '50%',
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
+                <span>
+                  Discord Handle:{' '}
+                  {discordValidation.isValid ? (
+                    <strong style={{ color: '#4ade80' }}>Verified ({discordValidation.normalized})</strong>
+                  ) : discord ? (
+                    <span style={{ color: '#f87171' }}>Invalid handle format</span>
+                  ) : (
+                    'Required (@username or handle for admin DM)'
+                  )}
+                </span>
+              </div>
+
+              {/* Requirement 3: Cambridge Subjects */}
+              <div
+                className={`form-live-checklist-item ${
+                  selectedCount > 0 ? 'is-passed' : 'is-pending'
+                }`}
+              >
+                {selectedCount > 0 ? (
+                  <CheckCircle2 size={12} color="#4ade80" />
+                ) : (
+                  <div
+                    style={{
+                      width: 10,
+                      height: 10,
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      borderRadius: '50%',
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
+                <span>
+                  Cambridge Subjects:{' '}
+                  {selectedCount > 0 ? (
+                    <strong style={{ color: '#4ade80' }}>
+                      {selectedCount} Subject{selectedCount > 1 ? 's' : ''} Enrolled
+                    </strong>
+                  ) : (
+                    'Select at least 1 subject component'
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {/* Submit Buttons with Dynamic Live Validation State */}
             <button
               type="submit"
               className="btn btn--solid"
               id="btn-proceed-email"
+              disabled={!isFormValid}
+              style={{
+                cursor: isFormValid ? 'pointer' : 'not-allowed',
+                background: isFormValid ? 'var(--fill-solid)' : 'rgba(255,255,255,0.06)',
+                color: isFormValid ? '#ffffff' : 'var(--text-dimmer)',
+              }}
+              title={
+                isFormValid
+                  ? 'Submit candidate registration to Cambridge examination administrators'
+                  : 'Please complete email, Discord handle, and at least 1 subject selection to enable enrollment'
+              }
             >
-              Enroll Papers via Discord & Email
+              {isFormValid
+                ? '✓ Enroll Papers via Discord & Email'
+                : 'Complete 3 Requirements Above to Enroll'}
             </button>
 
             <button
@@ -1536,42 +1802,93 @@ export default function App() {
                       boxSizing: 'border-box',
                     }}
                   />
-                  <input
-                    type="email"
-                    placeholder="Personal Email *"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    style={{
-                      width: '100%',
-                      background: 'transparent',
-                      border: '1px solid var(--line-strong)',
-                      padding: '12px 14px',
-                      color: '#ffffff',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '12px',
-                      borderRadius: 0,
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Discord Username *"
-                    value={discord}
-                    onChange={(e) => setDiscord(e.target.value)}
-                    required
-                    style={{
-                      width: '100%',
-                      background: 'transparent',
-                      border: '1px solid var(--line-strong)',
-                      padding: '12px 14px',
-                      color: '#ffffff',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '12px',
-                      borderRadius: 0,
-                      boxSizing: 'border-box',
-                    }}
-                  />
+
+                  {/* Email Input with Live Check */}
+                  <div>
+                    <input
+                      type="email"
+                      placeholder="Personal Email * (e.g. candidate@example.com)"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (!emailTouched) setEmailTouched(true);
+                      }}
+                      onBlur={() => setEmailTouched(true)}
+                      required
+                      style={{
+                        width: '100%',
+                        background: 'transparent',
+                        border: '1px solid',
+                        borderColor: email
+                          ? emailValidation.isValid
+                            ? '#4ade80'
+                            : '#f87171'
+                          : 'var(--line-strong)',
+                        padding: '12px 14px',
+                        color: '#ffffff',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '12px',
+                        borderRadius: 0,
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    {email && emailValidation.isValid && (
+                      <div className="form-validation-feedback is-valid" style={{ marginTop: '4px' }}>
+                        <CheckCircle2 size={11} />
+                        <span>Valid candidate email ({emailValidation.normalized})</span>
+                      </div>
+                    )}
+                    {(email || emailTouched) && !emailValidation.isValid && (
+                      <div className="form-validation-feedback is-invalid" style={{ marginTop: '4px' }}>
+                        <AlertTriangle size={11} />
+                        <span>{emailValidation.error}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Discord Input with Live Check */}
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Discord Username * (e.g. @candidate or handle)"
+                      value={discord}
+                      onChange={(e) => {
+                        setDiscord(e.target.value);
+                        if (!discordTouched) setDiscordTouched(true);
+                      }}
+                      onBlur={() => setDiscordTouched(true)}
+                      required
+                      style={{
+                        width: '100%',
+                        background: 'transparent',
+                        border: '1px solid',
+                        borderColor: discord
+                          ? discordValidation.isValid
+                            ? '#4ade80'
+                            : '#f87171'
+                          : 'var(--line-strong)',
+                        padding: '12px 14px',
+                        color: '#ffffff',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '12px',
+                        borderRadius: 0,
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    {discord && discordValidation.isValid && (
+                      <div className="form-validation-feedback is-valid" style={{ marginTop: '4px' }}>
+                        <CheckCircle2 size={11} />
+                        <span>Valid Discord handle: <strong style={{ color: '#4ade80' }}>{discordValidation.normalized}</strong></span>
+                      </div>
+                    )}
+                    {(discord || discordTouched) && !discordValidation.isValid && (
+                      <div className="form-validation-feedback is-invalid" style={{ marginTop: '4px' }}>
+                        <AlertTriangle size={11} />
+                        <span>{discordValidation.error}</span>
+                      </div>
+                    )}
+                  </div>
+
                   <input
                     type="text"
                     placeholder="Center Number [Optional]"
@@ -1614,9 +1931,17 @@ export default function App() {
                 <button
                   type="submit"
                   className="btn btn--solid"
-                  style={{ padding: '14px 20px', fontSize: '12px' }}
+                  disabled={!isFormValid}
+                  style={{
+                    padding: '14px 20px',
+                    fontSize: '12px',
+                    cursor: isFormValid ? 'pointer' : 'not-allowed',
+                    background: isFormValid ? 'var(--fill-solid)' : 'rgba(255,255,255,0.06)',
+                    color: isFormValid ? '#ffffff' : 'var(--text-dimmer)',
+                  }}
+                  title={isFormValid ? 'Submit registration' : 'Complete email, Discord handle, and at least 1 subject to submit'}
                 >
-                  Submit Registration & Notify Admins
+                  {isFormValid ? '✓ Submit Registration & Notify Admins' : 'Complete Requirements to Submit'}
                 </button>
               </form>
             )}
