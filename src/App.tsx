@@ -10,6 +10,8 @@ import { generateStatementOfEntryPDF } from './utils/pdfGenerator';
 import { validateEmail, validateDiscordHandle } from './utils/validation';
 import { UiverseButton } from './components/UiverseButton';
 import { UiverseLoader } from './components/UiverseLoader';
+import { UiverseNavTabs } from './components/UiverseNavTabs';
+import { DiscordLightButton } from './components/DiscordLightButton';
 import { MessageSquare, Mail, ShieldAlert, CheckCircle2, Copy, Check, BookOpen, Search, X, Plus, Layers, ExternalLink, ArrowUpRight, Radio, Users, Calendar, AlertTriangle, Clock, FileText, Download, FileCheck, ShieldCheck } from 'lucide-react';
 
 export const DISCORD_INVITE_URL = 'https://discord.gg/YD3hR9Sn54';
@@ -475,93 +477,15 @@ export default function App() {
         </a>
 
         <div className="nav-cluster">
-          <div className="nav-links" aria-label="Main Navigation">
-            <a
-              href="#story"
-              className="nav-link"
-              id="nav-story"
-              onClick={(e) => {
-                e.preventDefault();
-                setActiveModal('story');
-              }}
-            >
-              Story
-            </a>
-            <a
-              href="#papers"
-              className="nav-link"
-              id="nav-papers"
-              onClick={(e) => {
-                e.preventDefault();
-                setActiveModal('papers');
-              }}
-            >
-              Papers ({selectedCount})
-            </a>
-            <a
-              href="#timetable"
-              className="nav-link"
-              id="nav-timetable"
-              onClick={(e) => {
-                e.preventDefault();
-                setActiveModal('timetable');
-              }}
-              title="View your Oct/Nov 2026 Exam Schedule, spacing calendar, and clash detection"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
-            >
-              <Calendar size={13} />
-              <span>Timetable</span>
-              {timetableSummary.directClashesCount > 0 ? (
-                <span
-                  style={{
-                    fontSize: '9px',
-                    background: '#ef4444',
-                    color: '#fff',
-                    padding: '1px 5px',
-                    fontWeight: 700,
-                  }}
-                >
-                  {timetableSummary.directClashesCount} CLASH
-                </span>
-              ) : timetableSummary.totalScheduledPapers > 0 ? (
-                <span
-                  style={{
-                    fontSize: '9px',
-                    background: 'rgba(96, 165, 250, 0.2)',
-                    color: '#60a5fa',
-                    padding: '1px 5px',
-                    fontWeight: 600,
-                  }}
-                >
-                  {timetableSummary.totalScheduledPapers}P
-                </span>
-              ) : null}
-            </a>
-            <a
-              href="#identity"
-              className="nav-link"
-              id="nav-identity"
-              onClick={(e) => {
-                e.preventDefault();
-                setActiveModal('identity');
-              }}
-            >
-              Identity
-            </a>
-            <a
-              href="#admin-registry"
-              className="nav-admin-link"
-              id="nav-admin"
-              onClick={(e) => {
-                e.preventDefault();
-                setActiveModal('admin');
-              }}
-              title="View Candidate Registrations & Discord Handles (Site Owners / Admins)"
-            >
-              <span>Admin Log</span>
-              <span className="nav-admin-badge-count">{enrollments.length}</span>
-            </a>
-          </div>
+          {/* Uiverse.io Capsule Sliding Navigation Tabs */}
+          <UiverseNavTabs
+            selectedCount={selectedCount}
+            enrollmentsCount={enrollments.length}
+            activeModal={activeModal}
+            timetableSummary={timetableSummary}
+            onSelectTab={(modal) => setActiveModal(modal)}
+            orientation="horizontal"
+          />
 
           <UiverseButton
             as="a"
@@ -618,83 +542,21 @@ export default function App() {
         aria-hidden={!menuOpen}
         inert={!menuOpen ? true : undefined}
       >
-        <div className="mobile-menu__nav">
-          <div className="mobile-menu__item" style={{ '--i': 0 } as React.CSSProperties}>
-            <a
-              href="#story"
-              className="mobile-menu__link"
-              onClick={(e) => {
-                e.preventDefault();
+        <div className="mobile-menu__nav" style={{ width: '100%', maxWidth: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '18px' }}>
+          <div className="mobile-menu__item" style={{ '--i': 0, width: '100%', display: 'flex', justifyContent: 'center' } as React.CSSProperties}>
+            <UiverseNavTabs
+              selectedCount={selectedCount}
+              enrollmentsCount={enrollments.length}
+              activeModal={activeModal}
+              timetableSummary={timetableSummary}
+              onSelectTab={(modal) => {
                 setMenuOpen(false);
-                setActiveModal('story');
+                setActiveModal(modal);
               }}
-            >
-              Story
-            </a>
+              orientation="vertical"
+            />
           </div>
-          <div className="mobile-menu__item" style={{ '--i': 1 } as React.CSSProperties}>
-            <a
-              href="#papers"
-              className="mobile-menu__link"
-              onClick={(e) => {
-                e.preventDefault();
-                setMenuOpen(false);
-                setActiveModal('papers');
-              }}
-            >
-              Papers ({selectedCount})
-            </a>
-          </div>
-          <div className="mobile-menu__item" style={{ '--i': 2 } as React.CSSProperties}>
-            <a
-              href="#timetable"
-              className="mobile-menu__link"
-              onClick={(e) => {
-                e.preventDefault();
-                setMenuOpen(false);
-                setActiveModal('timetable');
-              }}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-            >
-              <span>Timetable & Clashes</span>
-              {timetableSummary.directClashesCount > 0 ? (
-                <span style={{ fontSize: '10px', background: '#ef4444', color: '#fff', padding: '2px 6px' }}>
-                  {timetableSummary.directClashesCount} Clash
-                </span>
-              ) : (
-                <span style={{ fontSize: '10px', color: '#60a5fa' }}>
-                  {timetableSummary.totalScheduledPapers} Papers
-                </span>
-              )}
-            </a>
-          </div>
-          <div className="mobile-menu__item" style={{ '--i': 3 } as React.CSSProperties}>
-            <a
-              href="#identity"
-              className="mobile-menu__link"
-              onClick={(e) => {
-                e.preventDefault();
-                setMenuOpen(false);
-                setActiveModal('identity');
-              }}
-            >
-              Identity
-            </a>
-          </div>
-          <div className="mobile-menu__item" style={{ '--i': 4 } as React.CSSProperties}>
-            <a
-              href="#admin"
-              className="mobile-menu__link"
-              onClick={(e) => {
-                e.preventDefault();
-                setMenuOpen(false);
-                setActiveModal('admin');
-              }}
-            >
-              Admin Registry ({enrollments.length})
-            </a>
-          </div>
-          <div className="mobile-menu__item" style={{ '--i': 5, display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' } as React.CSSProperties}>
+          <div className="mobile-menu__item" style={{ '--i': 1, width: '100%', display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' } as React.CSSProperties}>
             <UiverseButton
               as="a"
               href={DISCORD_INVITE_URL}
@@ -719,7 +581,7 @@ export default function App() {
                 setActiveModal('join');
               }}
             >
-              Join Up
+              Join Up / Candidate Registration
             </UiverseButton>
           </div>
         </div>
@@ -740,7 +602,15 @@ export default function App() {
         <p className="discord-side-desc">
           Official Discord community for Oct/Nov examination series. Admins DM candidates here to verify statement of entry.
         </p>
-        <div className="discord-side-actions" style={{ display: 'flex', gap: '8px' }}>
+
+        {/* Uiverse.io Light Button by kamehame-ha */}
+        <DiscordLightButton
+          url={DISCORD_INVITE_URL}
+          id="hero-discord-light-btn"
+          title="Click to immediately join official Cambridge IGCSE Discord Server"
+        />
+
+        <div className="discord-side-actions">
           <UiverseButton
             as="a"
             href={DISCORD_INVITE_URL}
@@ -753,7 +623,7 @@ export default function App() {
             iconRight={<ArrowUpRight size={12} />}
             title="Open official Discord server (discord.gg/YD3hR9Sn54)"
           >
-            Join Server
+            Direct Invite ↗
           </UiverseButton>
           <UiverseButton
             type="button"
