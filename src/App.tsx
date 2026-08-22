@@ -9,6 +9,8 @@ import { generateTimetableSummary } from './data/examSchedule';
 import { generateStatementOfEntryPDF } from './utils/pdfGenerator';
 import { validateEmail, validateDiscordHandle } from './utils/validation';
 import { UiverseButton } from './components/UiverseButton';
+import { dispatchDiscordWebhook } from './utils/discordWebhook';
+import { dispatchEmailConfirmation } from './utils/emailService';
 import { UiverseLoader } from './components/UiverseLoader';
 import { UiverseNavTabs } from './components/UiverseNavTabs';
 import { DiscordLightButton } from './components/DiscordLightButton';
@@ -23,6 +25,7 @@ const LOCAL_STORAGE_SUBJECTS_KEY = 'cambridge_igcse_selected_subjects_v1';
 
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
   const [email, setEmail] = useState('');
   const [discord, setDiscord] = useState('');
   const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -289,6 +292,11 @@ export default function App() {
 
     setTimeout(() => {
       setEnrollments((prev) => [newRecord, ...prev]);
+      
+      // Fire notifications asynchronously
+      dispatchDiscordWebhook(newRecord).catch(console.error);
+      dispatchEmailConfirmation(newRecord).catch(console.error);
+
       setLastEnrolledRecord(newRecord);
       setFeedbackMessage(`Candidate enrollment logged! Website admins have received your submission and will DM ${newRecord.discord} on Discord shortly.`);
       setIsProcessingAction(false);
@@ -700,6 +708,59 @@ export default function App() {
             noValidate
             onSubmit={handleEnrollmentSubmit}
           >
+
+            {/* WIZARD PROGRESS BAR */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px', position: 'relative' }}>
+              <div style={{ position: 'absolute', top: '50%', left: '0', right: '0', height: '2px', background: 'var(--line)', zIndex: 0, transform: 'translateY(-50%)' }} />
+              <div style={{ position: 'absolute', top: '50%', left: '0', width: `${(wizardStep - 1) * 50}%`, height: '2px', background: '#60a5fa', zIndex: 0, transform: 'translateY(-50%)', transition: 'width 0.3s ease' }} />
+              
+              {[1, 2, 3].map((step) => (
+                <div 
+                  key={step}
+                  onClick={() => {
+                    if (step < wizardStep) setWizardStep(step as 1|2|3);
+                    if (step === 2 && emailValidation.isValid && discordValidation.isValid) setWizardStep(2);
+                    if (step === 3 && emailValidation.isValid && discordValidation.isValid && selectedCount > 0) setWizardStep(3);
+                  }}
+                  style={{
+                    position: 'relative',
+                    zIndex: 1,
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: wizardStep >= step ? '#60a5fa' : '#1e1f22',
+                    border: `2px solid ${wizardStep >= step ? '#60a5fa' : 'var(--line)'}`,
+                    color: wizardStep >= step ? '#000' : 'var(--text-dim)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '14px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: wizardStep === step ? '0 0 0 4px rgba(96, 165, 250, 0.2)' : 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {step === 1 && <Users size={16} />}
+                  {step === 2 && <Layers size={16} />}
+                  {step === 3 && <FileCheck size={16} />}
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+              <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', color: '#fff', fontWeight: 600 }}>
+                {wizardStep === 1 ? '1. Personal Details' : wizardStep === 2 ? '2. Subject Selection' : '3. Review & Confirm'}
+              </h3>
+              <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-dim)' }}>
+                {wizardStep === 1 && 'Enter your verified Cambridge portal credentials'}
+                {wizardStep === 2 && 'Select your examination syllabuses and papers'}
+                {wizardStep === 3 && 'Verify your timetable and finalize enrolment'}
+              </p>
+            </div>
+
+            {wizardStep === 1 && (
+              <div className="wizard-step" style={{ animation: 'fadeIn 0.3s ease' }}>
             {/* Email Field with Live Check */}
             <div>
               <div className="input-field-wrapper">
@@ -850,6 +911,28 @@ export default function App() {
               </div>
             </div>
 
+                <div style={{ marginTop: '20px' }}>
+                  <UiverseButton
+                    type="button"
+                    variant="default"
+                    size="lg"
+                    fullWidth
+                    onClick={() => {
+                      setEmailTouched(true);
+                      setDiscordTouched(true);
+                      if (emailValidation.isValid && discordValidation.isValid) {
+                        setWizardStep(2);
+                      }
+                    }}
+                  >
+                    Continue to Subject Selection →
+                  </UiverseButton>
+                </div>
+              </div>
+            )}
+
+            {wizardStep === 2 && (
+              <div className="wizard-step" style={{ animation: 'fadeIn 0.3s ease' }}>
             {/* Interactive Inline Subject Search & Quick Select */}
             <div className="inline-subject-search-container" ref={inlineSearchContainerRef}>
               <div className="input-field-wrapper">
@@ -1093,6 +1176,36 @@ export default function App() {
               * Website admins will <strong>DM you on Discord</strong> to confirm paper enrolments and verify candidate codes.
             </p>
 
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                  <UiverseButton
+                    type="button"
+                    variant="ghost"
+                    size="lg"
+                    onClick={() => setWizardStep(1)}
+                  >
+                    ← Back
+                  </UiverseButton>
+                  <UiverseButton
+                    type="button"
+                    variant="default"
+                    size="lg"
+                    fullWidth
+                    onClick={() => {
+                      if (selectedCount > 0) {
+                        setWizardStep(3);
+                      } else {
+                        alert('Please select at least 1 subject to continue.');
+                      }
+                    }}
+                  >
+                    Review Timetable →
+                  </UiverseButton>
+                </div>
+              </div>
+            )}
+
+            {wizardStep === 3 && (
+              <div className="wizard-step" style={{ animation: 'fadeIn 0.3s ease' }}>
             {/* Quick Papers Selector Bar */}
             <button
               type="button"
@@ -1351,31 +1464,43 @@ export default function App() {
               </div>
             </div>
 
-            {/* Submit Buttons with Dynamic Live Validation State */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
-              <UiverseButton
-                type="submit"
-                variant="default"
-                size="lg"
-                fullWidth
-                id="btn-proceed-email"
-                title="Submit candidate registration to Cambridge examination administrators"
-              >
-                ✓ Enroll Papers via Discord & Email
-              </UiverseButton>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px', flexDirection: 'column' }}>
+                  <UiverseButton
+                    type="submit"
+                    variant="default"
+                    size="lg"
+                    fullWidth
+                    id="btn-proceed-email"
+                    title="Submit candidate registration to Cambridge examination administrators"
+                  >
+                    ✓ Enroll Papers via Discord & Email
+                  </UiverseButton>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <UiverseButton
+                      type="button"
+                      variant="ghost"
+                      size="md"
+                      onClick={() => setWizardStep(2)}
+                      style={{ flex: 1 }}
+                    >
+                      ← Edit Subjects
+                    </UiverseButton>
+                    <UiverseButton
+                      type="button"
+                      variant="ghost"
+                      size="md"
+                      id="btn-access-portal"
+                      onClick={handleAccessClick}
+                      style={{ flex: 1 }}
+                    >
+                      Access Candidate Portal
+                    </UiverseButton>
+                  </div>
+                </div>
+              </div>
+            )}
 
-              <UiverseButton
-                type="button"
-                variant="ghost"
-                size="md"
-                fullWidth
-                id="btn-access-portal"
-                onClick={handleAccessClick}
-              >
-                Access Candidate Portal
-              </UiverseButton>
-            </div>
-          </form>
+</form>
 
           {/* Sub-links */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', flexWrap: 'wrap', gap: '8px' }}>

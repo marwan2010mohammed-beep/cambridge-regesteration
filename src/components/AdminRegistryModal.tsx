@@ -21,11 +21,13 @@ import {
   requestDesktopNotificationPermission,
   playAdminNotificationSound,
 } from '../utils/discordWebhook';
+import { getEmailConfig, saveEmailConfig, EmailConfig, testEmailConfirmation } from '../utils/emailService';
 import { UiverseButton } from './UiverseButton';
 import { UiverseLoader } from './UiverseLoader';
 import {
   Copy,
   Check,
+  Mail,
   MessageSquare,
   Download,
   Trash2,
@@ -125,6 +127,11 @@ export function AdminRegistryModal({
   const [resendingWebhookId, setResendingWebhookId] = useState<string | null>(null);
   const [resendWebhookFeedback, setResendWebhookFeedback] = useState<string | null>(null);
 
+  // EmailJS Settings State
+  const [emailConfig, setEmailConfig] = useState<EmailConfig>(() => getEmailConfig());
+  const [testEmailStatus, setTestEmailStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
+  const [testEmailMessage, setTestEmailMessage] = useState<string>('');
+  
   // Webhook Settings State
   const [webhookConfig, setWebhookConfig] = useState<WebhookConfig>(() => getWebhookConfig());
   const [webhookLogs, setWebhookLogs] = useState<WebhookDispatchLog[]>(() => getWebhookLogs());
@@ -379,6 +386,26 @@ export function AdminRegistryModal({
       setTimeout(() => {
         setResendWebhookFeedback(null);
       }, 4000);
+    }
+  };
+
+  const handleSaveEmailSettings = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    saveEmailConfig(emailConfig);
+    alert('EmailJS API Settings saved locally.');
+  };
+
+  const handleTestEmail = async () => {
+    setTestEmailStatus('testing');
+    setTestEmailMessage('Dispatching automated email test...');
+    
+    try {
+      const result = await testEmailConfirmation(emailConfig);
+      setTestEmailStatus(result.success ? 'success' : 'failed');
+      setTestEmailMessage(result.message);
+    } catch (err: any) {
+      setTestEmailStatus('failed');
+      setTestEmailMessage(err.message);
     }
   };
 
@@ -1647,6 +1674,183 @@ export function AdminRegistryModal({
                     }}
                   >
                     {testWebhookMessage}
+                  </div>
+                )}
+              </form>
+            </div>
+
+            
+            {/* EmailJS API Settings */}
+            <div
+              style={{
+                background: 'rgba(234, 179, 8, 0.1)',
+                border: '1px solid rgba(234, 179, 8, 0.35)',
+                padding: '14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Mail size={16} color="#eab308" />
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>
+                    AUTOMATED EMAIL CONFIRMATION (API)
+                  </span>
+                </div>
+                <span
+                  style={{
+                    fontSize: '10px',
+                    padding: '2px 8px',
+                    background: emailConfig.enabled ? 'rgba(74, 222, 128, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                    color: emailConfig.enabled ? '#4ade80' : '#f87171',
+                    border: `1px solid ${emailConfig.enabled ? 'rgba(74,222,128,0.4)' : 'rgba(239,68,68,0.4)'}`,
+                  }}
+                >
+                  {emailConfig.enabled ? '● EMAIL AUTOMATION ENABLED' : '○ EMAIL AUTOMATION PAUSED'}
+                </span>
+              </div>
+
+              <p style={{ fontSize: '11px', color: '#b5bac1', lineHeight: 1.5, margin: 0 }}>
+                Configure your EmailJS API keys to automatically dispatch an email summary to candidates upon registration.
+              </p>
+
+              <form onSubmit={handleSaveEmailSettings} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '10px', color: '#949ba4', marginBottom: '4px', letterSpacing: '0.08em' }}>
+                    SERVICE ID:
+                  </label>
+                  <input
+                    type="text"
+                    value={emailConfig.serviceId}
+                    onChange={(e) => setEmailConfig({ ...emailConfig, serviceId: e.target.value })}
+                    placeholder="e.g. service_xxxxx"
+                    style={{
+                      width: '100%',
+                      background: 'rgba(0,0,0,0.4)',
+                      border: '1px solid #3f4147',
+                      borderRadius: '4px',
+                      padding: '8px 10px',
+                      color: '#dbdee1',
+                      fontSize: '12px',
+                      fontFamily: 'var(--font-mono)',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '10px', color: '#949ba4', marginBottom: '4px', letterSpacing: '0.08em' }}>
+                    TEMPLATE ID:
+                  </label>
+                  <input
+                    type="text"
+                    value={emailConfig.templateId}
+                    onChange={(e) => setEmailConfig({ ...emailConfig, templateId: e.target.value })}
+                    placeholder="e.g. template_xxxxx"
+                    style={{
+                      width: '100%',
+                      background: 'rgba(0,0,0,0.4)',
+                      border: '1px solid #3f4147',
+                      borderRadius: '4px',
+                      padding: '8px 10px',
+                      color: '#dbdee1',
+                      fontSize: '12px',
+                      fontFamily: 'var(--font-mono)',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '10px', color: '#949ba4', marginBottom: '4px', letterSpacing: '0.08em' }}>
+                    PUBLIC KEY:
+                  </label>
+                  <input
+                    type="password"
+                    value={emailConfig.publicKey}
+                    onChange={(e) => setEmailConfig({ ...emailConfig, publicKey: e.target.value })}
+                    placeholder="e.g. public_xxxxx"
+                    style={{
+                      width: '100%',
+                      background: 'rgba(0,0,0,0.4)',
+                      border: '1px solid #3f4147',
+                      borderRadius: '4px',
+                      padding: '8px 10px',
+                      color: '#dbdee1',
+                      fontSize: '12px',
+                      fontFamily: 'var(--font-mono)',
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                  <input
+                    type="checkbox"
+                    id="enable-email-automation"
+                    checked={emailConfig.enabled}
+                    onChange={(e) => setEmailConfig({ ...emailConfig, enabled: e.target.checked })}
+                  />
+                  <label htmlFor="enable-email-automation" style={{ fontSize: '11px', color: '#dbdee1', cursor: 'pointer' }}>
+                    Enable automatic email dispatch for new registrations
+                  </label>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                  <button
+                    type="submit"
+                    style={{
+                      background: '#5865F2',
+                      border: 'none',
+                      borderRadius: '4px',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      padding: '8px 16px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <Check size={14} />
+                    <span>Save Email API Settings</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleTestEmail}
+                    disabled={testEmailStatus === 'testing' || !emailConfig.serviceId || !emailConfig.templateId || !emailConfig.publicKey}
+                    style={{
+                      background: 'rgba(255,255,255,0.1)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: '4px',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      padding: '8px 16px',
+                      cursor: (testEmailStatus === 'testing' || !emailConfig.serviceId) ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      opacity: (testEmailStatus === 'testing' || !emailConfig.serviceId || !emailConfig.templateId || !emailConfig.publicKey) ? 0.6 : 1,
+                    }}
+                  >
+                    <Zap size={14} />
+                    <span>{testEmailStatus === 'testing' ? 'Sending...' : 'Test Email Dispatch'}</span>
+                  </button>
+                </div>
+
+                {testEmailMessage && (
+                  <div
+                    style={{
+                      marginTop: '8px',
+                      padding: '8px 12px',
+                      background: testEmailStatus === 'success' ? 'rgba(74, 222, 128, 0.15)' : testEmailStatus === 'failed' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.05)',
+                      border: `1px solid ${testEmailStatus === 'success' ? 'rgba(74, 222, 128, 0.4)' : testEmailStatus === 'failed' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(255,255,255,0.1)'}`,
+                      color: testEmailStatus === 'success' ? '#a3e635' : testEmailStatus === 'failed' ? '#f87171' : '#b5bac1',
+                      fontSize: '11px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    {testEmailStatus === 'success' ? <CheckCircle2 size={14} /> : testEmailStatus === 'failed' ? <AlertTriangle size={14} /> : <div className="uiverse-loader" style={{ transform: 'scale(0.3)' }} />}
+                    <span>{testEmailMessage}</span>
                   </div>
                 )}
               </form>
