@@ -12,6 +12,8 @@ import {
   requestDesktopNotificationPermission,
   playAdminNotificationSound,
 } from '../utils/discordWebhook';
+import { UiverseButton } from './UiverseButton';
+import { UiverseLoader } from './UiverseLoader';
 import {
   Copy,
   Check,
@@ -107,6 +109,7 @@ export function AdminRegistryModal({
   const [testWebhookStatus, setTestWebhookStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
   const [testWebhookMessage, setTestWebhookMessage] = useState<string>('');
   const [isSavingWebhook, setIsSavingWebhook] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const usernameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -116,10 +119,10 @@ export function AdminRegistryModal({
   }, []);
 
   useEffect(() => {
-    if (!currentUser) {
+    if (!currentUser && !isAuthenticating) {
       usernameInputRef.current?.focus();
     }
-  }, [currentUser]);
+  }, [currentUser, isAuthenticating]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,19 +135,23 @@ export function AdminRegistryModal({
       (a) => a.username.toLowerCase() === userClean && a.password === passClean
     );
 
-    if (matchedAccount) {
-      setCurrentUser(matchedAccount.username);
-      try {
-        sessionStorage.setItem(ADMIN_SESSION_STORAGE_KEY, matchedAccount.username);
-      } catch {
-        // Ignored
+    setIsAuthenticating(true);
+    setTimeout(() => {
+      setIsAuthenticating(false);
+      if (matchedAccount) {
+        setCurrentUser(matchedAccount.username);
+        try {
+          sessionStorage.setItem(ADMIN_SESSION_STORAGE_KEY, matchedAccount.username);
+        } catch {
+          // Ignored
+        }
+        setInputPassword('');
+        setAuthError(null);
+      } else {
+        setLoginAttempts((prev) => prev + 1);
+        setAuthError('Access Denied: Invalid administrator username or password.');
       }
-      setInputPassword('');
-      setAuthError(null);
-    } else {
-      setLoginAttempts((prev) => prev + 1);
-      setAuthError('Access Denied: Invalid administrator username or password.');
-    }
+    }, 650);
   };
 
   const handleLogout = () => {
@@ -453,168 +460,176 @@ export function AdminRegistryModal({
               </div>
             </div>
 
-            {/* Login Form */}
-            <form
-              onSubmit={handleLogin}
-              style={{
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid var(--line-strong)',
-                padding: '20px',
-                marginBottom: '16px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '14px',
-              }}
-            >
-              <div>
-                <label
-                  htmlFor="admin-username-input"
-                  style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    letterSpacing: '0.12em',
-                    color: 'var(--text-dim)',
-                    marginBottom: '6px',
-                  }}
-                >
-                  ADMINISTRATOR USERNAME:
-                </label>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    background: 'rgba(0, 0, 0, 0.4)',
-                    border: '1px solid var(--line)',
-                    padding: '8px 12px',
-                  }}
-                >
-                  <UserCheck size={14} color="var(--text-dim)" style={{ marginRight: '8px' }} />
-                  <input
-                    ref={usernameInputRef}
-                    id="admin-username-input"
-                    type="text"
-                    placeholder="Enter username (e.g. admin or owner)..."
-                    value={inputUsername}
-                    onChange={(e) => setInputUsername(e.target.value)}
-                    required
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#ffffff',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '13px',
-                      outline: 'none',
-                      width: '100%',
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="admin-password-input"
-                  style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    letterSpacing: '0.12em',
-                    color: 'var(--text-dim)',
-                    marginBottom: '6px',
-                  }}
-                >
-                  SECURITY PASSWORD:
-                </label>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    background: 'rgba(0, 0, 0, 0.4)',
-                    border: '1px solid var(--line)',
-                    padding: '8px 12px',
-                  }}
-                >
-                  <Key size={14} color="var(--text-dim)" style={{ marginRight: '8px' }} />
-                  <input
-                    id="admin-password-input"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Enter password..."
-                    value={inputPassword}
-                    onChange={(e) => setInputPassword(e.target.value)}
-                    required
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#ffffff',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '13px',
-                      outline: 'none',
-                      width: '100%',
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'var(--text-dim)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '0 4px',
-                    }}
-                    title={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
-              </div>
-
-              {authError && (
-                <div
-                  style={{
-                    color: '#f87171',
-                    fontSize: '11px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    padding: '8px 10px',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                  }}
-                >
-                  <AlertCircle size={14} />
-                  <span>{authError}</span>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="btn btn--solid"
+            {/* Login Form or Loading State */}
+            {isAuthenticating ? (
+              <div
                 style={{
-                  padding: '12px 20px',
-                  fontSize: '12px',
-                  letterSpacing: '0.12em',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid var(--line-strong)',
+                  padding: '36px 20px',
+                  marginBottom: '16px',
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  gap: '8px',
-                  marginTop: '4px',
                 }}
               >
-                <Unlock size={14} />
-                UNLOCK CANDIDATE REGISTRY
-              </button>
-            </form>
+                <UiverseLoader label="Authenticating Administrator PIN & Credentials..." size="md" />
+              </div>
+            ) : (
+              <form
+                onSubmit={handleLogin}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid var(--line-strong)',
+                  padding: '20px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '14px',
+                }}
+              >
+                <div>
+                  <label
+                    htmlFor="admin-username-input"
+                    style={{
+                      display: 'block',
+                      fontSize: '11px',
+                      letterSpacing: '0.12em',
+                      color: 'var(--text-dim)',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    ADMINISTRATOR USERNAME:
+                  </label>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      background: 'rgba(0, 0, 0, 0.4)',
+                      border: '1px solid var(--line)',
+                      padding: '8px 12px',
+                    }}
+                  >
+                    <UserCheck size={14} color="var(--text-dim)" style={{ marginRight: '8px' }} />
+                    <input
+                      ref={usernameInputRef}
+                      id="admin-username-input"
+                      type="text"
+                      placeholder="Enter username (e.g. admin or owner)..."
+                      value={inputUsername}
+                      onChange={(e) => setInputUsername(e.target.value)}
+                      required
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#ffffff',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '13px',
+                        outline: 'none',
+                        width: '100%',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="admin-password-input"
+                    style={{
+                      display: 'block',
+                      fontSize: '11px',
+                      letterSpacing: '0.12em',
+                      color: 'var(--text-dim)',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    SECURITY PASSWORD:
+                  </label>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      background: 'rgba(0, 0, 0, 0.4)',
+                      border: '1px solid var(--line)',
+                      padding: '8px 12px',
+                    }}
+                  >
+                    <Key size={14} color="var(--text-dim)" style={{ marginRight: '8px' }} />
+                    <input
+                      id="admin-password-input"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Enter password..."
+                      value={inputPassword}
+                      onChange={(e) => setInputPassword(e.target.value)}
+                      required
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#ffffff',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '13px',
+                        outline: 'none',
+                        width: '100%',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-dim)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '0 4px',
+                      }}
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+
+                {authError && (
+                  <div
+                    style={{
+                      color: '#f87171',
+                      fontSize: '11px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      padding: '8px 10px',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                    }}
+                  >
+                    <AlertCircle size={14} />
+                    <span>{authError}</span>
+                  </div>
+                )}
+
+                <UiverseButton
+                  type="submit"
+                  variant="default"
+                  size="md"
+                  fullWidth
+                  icon={<Unlock size={14} />}
+                >
+                  Unlock Candidate Registry
+                </UiverseButton>
+              </form>
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button
+              <UiverseButton
                 type="button"
-                className="btn btn--ghost"
-                style={{ padding: '10px 16px', fontSize: '11px', color: '#fff' }}
+                variant="ghost"
+                size="sm"
                 onClick={onClose}
               >
                 Cancel
-              </button>
+              </UiverseButton>
             </div>
           </div>
         ) : (

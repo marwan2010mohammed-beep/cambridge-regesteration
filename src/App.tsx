@@ -9,6 +9,7 @@ import { generateTimetableSummary } from './data/examSchedule';
 import { generateStatementOfEntryPDF } from './utils/pdfGenerator';
 import { validateEmail, validateDiscordHandle } from './utils/validation';
 import { UiverseButton } from './components/UiverseButton';
+import { UiverseLoader } from './components/UiverseLoader';
 import { MessageSquare, Mail, ShieldAlert, CheckCircle2, Copy, Check, BookOpen, Search, X, Plus, Layers, ExternalLink, ArrowUpRight, Radio, Users, Calendar, AlertTriangle, Clock, FileText, Download, FileCheck, ShieldCheck } from 'lucide-react';
 
 export const DISCORD_INVITE_URL = 'https://discord.gg/YD3hR9Sn54';
@@ -85,6 +86,11 @@ export default function App() {
   // Live input touch / interaction state for validation styling
   const [emailTouched, setEmailTouched] = useState(false);
   const [discordTouched, setDiscordTouched] = useState(false);
+
+  // Loading animation state with Uiverse.io bouncing circles loader
+  const [isProcessingAction, setIsProcessingAction] = useState(false);
+  const [processingLabel, setProcessingLabel] = useState('Processing Candidate Registration...');
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   // Real-time live checks for Email and Discord username
   const emailValidation = useMemo(() => validateEmail(email), [email]);
@@ -237,43 +243,68 @@ export default function App() {
       status: 'Pending Admin DM',
     };
 
-    setEnrollments((prev) => [newRecord, ...prev]);
-    setLastEnrolledRecord(newRecord);
-    setFeedbackMessage(`Candidate enrollment logged! Website admins have received your submission and will DM ${newRecord.discord} on Discord shortly.`);
-    setActiveModal('success');
+    setIsProcessingAction(true);
+    setProcessingLabel('Enrolling Candidate & Updating Cambridge Center Registry...');
+    setActiveModal('loading');
 
-    // Immediately clear all personal information, input fields, and subject/paper selections
-    setEmail('');
-    setDiscord('');
-    setEmailTouched(false);
-    setDiscordTouched(false);
-    setCandidateName('');
-    setCenterNumber('');
-    setInlineSubjectSearch('');
-    setIsInlineDropdownOpen(false);
-    setSubjects((prev) =>
-      prev.map((s) => ({
-        ...s,
-        selected: false,
-        selectedPapers: [...s.papers],
-      }))
-    );
+    setTimeout(() => {
+      setEnrollments((prev) => [newRecord, ...prev]);
+      setLastEnrolledRecord(newRecord);
+      setFeedbackMessage(`Candidate enrollment logged! Website admins have received your submission and will DM ${newRecord.discord} on Discord shortly.`);
+      setIsProcessingAction(false);
+      setActiveModal('success');
+
+      // Immediately clear all personal information, input fields, and subject/paper selections
+      setEmail('');
+      setDiscord('');
+      setEmailTouched(false);
+      setDiscordTouched(false);
+      setCandidateName('');
+      setCenterNumber('');
+      setInlineSubjectSearch('');
+      setIsInlineDropdownOpen(false);
+      setSubjects((prev) =>
+        prev.map((s) => ({
+          ...s,
+          selected: false,
+          selectedPapers: [...s.papers],
+        }))
+      );
+    }, 750);
   };
 
   const handleAccessClick = () => {
-    if (email) {
-      setFeedbackMessage(`Loading Cambridge International examination timetable & statement of entry for ${email}...`);
-    } else {
-      setFeedbackMessage('Please provide your registered school/candidate email address to access the Cambridge Oct/Nov session portal.');
-    }
-    setActiveModal('portal');
+    setIsProcessingAction(true);
+    setProcessingLabel(
+      email
+        ? `Retrieving Cambridge Examination Record & Timetable for ${email}...`
+        : 'Loading Cambridge Oct/Nov Candidate Session Portal...'
+    );
+    setActiveModal('loading');
+
+    setTimeout(() => {
+      setIsProcessingAction(false);
+      if (email) {
+        setFeedbackMessage(`Loading Cambridge International examination timetable & statement of entry for ${email}...`);
+      } else {
+        setFeedbackMessage('Please provide your registered school/candidate email address to access the Cambridge Oct/Nov session portal.');
+      }
+      setActiveModal('portal');
+    }, 600);
   };
 
   const handleInviteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteCode) return;
-    setFeedbackMessage(`Center Verification Key [${inviteCode.toUpperCase()}] authenticated for the Cambridge Oct/Nov examination series.`);
-    setActiveModal('success');
+    setIsProcessingAction(true);
+    setProcessingLabel(`Authenticating Center Authorization Key [${inviteCode.toUpperCase()}]...`);
+    setActiveModal('loading');
+
+    setTimeout(() => {
+      setIsProcessingAction(false);
+      setFeedbackMessage(`Center Verification Key [${inviteCode.toUpperCase()}] authenticated for the Cambridge Oct/Nov examination series.`);
+      setActiveModal('success');
+    }, 650);
   };
 
   const toggleSubject = (code: string) => {
@@ -1666,6 +1697,7 @@ export default function App() {
               >
                 {activeModal === 'portal' && '[ CANDIDATE PORTAL & TIMETABLE ]'}
                 {activeModal === 'schedule' && '[ OCT / NOV 2026 KEY DATES TIMETABLE ]'}
+                {activeModal === 'loading' && '[ PROCESSING REQUEST ]'}
                 {activeModal === 'invite' && '[ CENTER VERIFICATION KEY ]'}
                 {activeModal === 'join' && '[ CANDIDATE REGISTRATION SERIES ]'}
                 {activeModal === 'story' && '[ CAMBRIDGE INTERNATIONAL OVERVIEW ]'}
@@ -1693,6 +1725,13 @@ export default function App() {
                 [X]
               </button>
             </div>
+
+            {/* Modal Body: Loading State */}
+            {activeModal === 'loading' && (
+              <div style={{ padding: '24px 12px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <UiverseLoader label={processingLabel} size="md" />
+              </div>
+            )}
 
             {/* Modal Body: Candidate Portal */}
             {activeModal === 'portal' && (
@@ -2255,19 +2294,29 @@ export default function App() {
                       </div>
                     </div>
 
-                    <UiverseButton
-                      type="button"
-                      variant={pdfDownloaded ? 'emerald' : 'cyan'}
-                      size="sm"
-                      onClick={() => {
-                        generateStatementOfEntryPDF(lastEnrolledRecord, subjects);
-                        setPdfDownloaded(true);
-                      }}
-                      icon={pdfDownloaded ? <FileCheck size={15} /> : <Download size={15} />}
-                      title="Download official Cambridge Statement of Entry PDF for your records"
-                    >
-                      {pdfDownloaded ? 'PDF Downloaded (Download Again)' : 'Download Statement of Entry (PDF)'}
-                    </UiverseButton>
+                    {isGeneratingPDF ? (
+                      <div style={{ padding: '8px 0' }}>
+                        <UiverseLoader label="Compiling Statement of Entry PDF..." size="sm" />
+                      </div>
+                    ) : (
+                      <UiverseButton
+                        type="button"
+                        variant={pdfDownloaded ? 'emerald' : 'cyan'}
+                        size="sm"
+                        onClick={() => {
+                          setIsGeneratingPDF(true);
+                          setTimeout(() => {
+                            generateStatementOfEntryPDF(lastEnrolledRecord, subjects);
+                            setPdfDownloaded(true);
+                            setIsGeneratingPDF(false);
+                          }, 750);
+                        }}
+                        icon={pdfDownloaded ? <FileCheck size={15} /> : <Download size={15} />}
+                        title="Download official Cambridge Statement of Entry PDF for your records"
+                      >
+                        {pdfDownloaded ? 'PDF Downloaded (Download Again)' : 'Download Statement of Entry (PDF)'}
+                      </UiverseButton>
+                    )}
                   </div>
                 )}
 
