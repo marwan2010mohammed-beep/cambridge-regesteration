@@ -8,6 +8,7 @@ import { ExamScheduleVisualizer } from './components/ExamScheduleVisualizer';
 import { generateTimetableSummary } from './data/examSchedule';
 import { generateStatementOfEntryPDF } from './utils/pdfGenerator';
 import { validateEmail, validateDiscordHandle } from './utils/validation';
+import { UiverseButton } from './components/UiverseButton';
 import { MessageSquare, Mail, ShieldAlert, CheckCircle2, Copy, Check, BookOpen, Search, X, Plus, Layers, ExternalLink, ArrowUpRight, Radio, Users, Calendar, AlertTriangle, Clock, FileText, Download, FileCheck, ShieldCheck } from 'lucide-react';
 
 export const DISCORD_INVITE_URL = 'https://discord.gg/YD3hR9Sn54';
@@ -531,21 +532,25 @@ export default function App() {
             </a>
           </div>
 
-          <a
+          <UiverseButton
+            as="a"
             href={DISCORD_INVITE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="nav-discord-btn"
+            variant="discord"
+            size="sm"
             id="nav-discord-link"
+            icon={<MessageSquare size={13} />}
             title="Join Official Cambridge IGCSE Discord Server (discord.gg/YD3hR9Sn54)"
           >
-            <MessageSquare size={13} />
-            <span>Discord Server ↗</span>
-          </a>
+            Discord Server ↗
+          </UiverseButton>
 
-          <a
+          <UiverseButton
+            as="a"
             href="#join"
-            className="cta-join"
+            variant="default"
+            size="sm"
             id="nav-join-desktop"
             onClick={(e) => {
               e.preventDefault();
@@ -553,7 +558,7 @@ export default function App() {
             }}
           >
             Join Up
-          </a>
+          </UiverseButton>
 
           <button
             ref={hamburgerRef}
@@ -658,22 +663,25 @@ export default function App() {
               Admin Registry ({enrollments.length})
             </a>
           </div>
-          <div className="mobile-menu__item" style={{ '--i': 5 } as React.CSSProperties}>
-            <a
+          <div className="mobile-menu__item" style={{ '--i': 5, display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' } as React.CSSProperties}>
+            <UiverseButton
+              as="a"
               href={DISCORD_INVITE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="mobile-menu__link"
-              style={{ color: '#818cf8', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+              variant="discord"
+              size="md"
+              fullWidth
+              icon={<MessageSquare size={16} />}
             >
-              <MessageSquare size={20} />
-              <span>Discord Server ↗</span>
-            </a>
-          </div>
-          <div className="mobile-menu__item" style={{ '--i': 5 } as React.CSSProperties}>
-            <a
+              Discord Server ↗
+            </UiverseButton>
+            <UiverseButton
+              as="a"
               href="#join"
-              className="mobile-menu__cta"
+              variant="default"
+              size="md"
+              fullWidth
               onClick={(e) => {
                 e.preventDefault();
                 setMenuOpen(false);
@@ -681,7 +689,7 @@ export default function App() {
               }}
             >
               Join Up
-            </a>
+            </UiverseButton>
           </div>
         </div>
       </div>
@@ -701,27 +709,31 @@ export default function App() {
         <p className="discord-side-desc">
           Official Discord community for Oct/Nov examination series. Admins DM candidates here to verify statement of entry.
         </p>
-        <div className="discord-side-actions">
-          <a
+        <div className="discord-side-actions" style={{ display: 'flex', gap: '8px' }}>
+          <UiverseButton
+            as="a"
             href={DISCORD_INVITE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="discord-btn-primary"
+            variant="discord"
+            size="xs"
+            fullWidth
+            icon={<MessageSquare size={12} />}
+            iconRight={<ArrowUpRight size={12} />}
             title="Open official Discord server (discord.gg/YD3hR9Sn54)"
           >
-            <MessageSquare size={13} />
-            <span>Join Server</span>
-            <ArrowUpRight size={13} />
-          </a>
-          <button
+            Join Server
+          </UiverseButton>
+          <UiverseButton
             type="button"
-            className="discord-btn-copy"
             onClick={handleCopyDiscordLink}
+            variant="ghost"
+            size="xs"
+            icon={copiedDiscord ? <Check size={12} color="#a3e635" /> : <Copy size={12} />}
             title="Copy Discord invite URL to clipboard"
           >
-            {copiedDiscord ? <Check size={12} color="#a3e635" /> : <Copy size={12} />}
-            <span>{copiedDiscord ? 'Copied' : 'Copy'}</span>
-          </button>
+            {copiedDiscord ? 'Copied' : 'Copy'}
+          </UiverseButton>
         </div>
       </aside>
 
@@ -1245,32 +1257,15 @@ export default function App() {
                   </div>
                 </div>
 
-                <button
+                <UiverseButton
                   type="button"
                   onClick={() => setActiveModal('timetable')}
-                  style={{
-                    background:
-                      timetableSummary.directClashesCount > 0
-                        ? '#ef4444'
-                        : 'rgba(96, 165, 250, 0.15)',
-                    color: timetableSummary.directClashesCount > 0 ? '#fff' : '#60a5fa',
-                    border: '1px solid',
-                    borderColor:
-                      timetableSummary.directClashesCount > 0
-                        ? '#ef4444'
-                        : 'rgba(96, 165, 250, 0.4)',
-                    padding: '4px 8px',
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
+                  variant={timetableSummary.directClashesCount > 0 ? 'danger' : 'cyan'}
+                  size="xs"
                   title="Open interactive calendar, chronological timeline & clash diagnostic"
                 >
-                  <span>[ View Schedule & Calendar ↗ ]</span>
-                </button>
+                  [ View Schedule & Calendar ↗ ]
+                </UiverseButton>
               </div>
             )}
 
@@ -1418,35 +1413,36 @@ export default function App() {
             </div>
 
             {/* Submit Buttons with Dynamic Live Validation State */}
-            <button
-              type="submit"
-              className="btn btn--solid"
-              id="btn-proceed-email"
-              disabled={!isFormValid}
-              style={{
-                cursor: isFormValid ? 'pointer' : 'not-allowed',
-                background: isFormValid ? 'var(--fill-solid)' : 'rgba(255,255,255,0.06)',
-                color: isFormValid ? '#ffffff' : 'var(--text-dimmer)',
-              }}
-              title={
-                isFormValid
-                  ? 'Submit candidate registration to Cambridge examination administrators'
-                  : 'Please complete email, Discord handle, and at least 1 subject selection to enable enrollment'
-              }
-            >
-              {isFormValid
-                ? '✓ Enroll Papers via Discord & Email'
-                : 'Complete 3 Requirements Above to Enroll'}
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
+              <UiverseButton
+                type="submit"
+                variant={isFormValid ? 'default' : 'ghost'}
+                size="lg"
+                fullWidth
+                id="btn-proceed-email"
+                disabled={!isFormValid}
+                title={
+                  isFormValid
+                    ? 'Submit candidate registration to Cambridge examination administrators'
+                    : 'Please complete email, Discord handle, and at least 1 subject selection to enable enrollment'
+                }
+              >
+                {isFormValid
+                  ? '✓ Enroll Papers via Discord & Email'
+                  : 'Complete 3 Requirements Above to Enroll'}
+              </UiverseButton>
 
-            <button
-              type="button"
-              className="btn btn--ghost"
-              id="btn-access-portal"
-              onClick={handleAccessClick}
-            >
-              Access Candidate Portal
-            </button>
+              <UiverseButton
+                type="button"
+                variant="ghost"
+                size="md"
+                fullWidth
+                id="btn-access-portal"
+                onClick={handleAccessClick}
+              >
+                Access Candidate Portal
+              </UiverseButton>
+            </div>
           </form>
 
           {/* Sub-links */}
@@ -1721,22 +1717,24 @@ export default function App() {
                   <div style={{ color: 'var(--text-dim)' }}>ENROLLED SUBJECTS: <span style={{ color: '#fff' }}>{selectedCount} Selected</span></div>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button
+                  <UiverseButton
                     type="button"
-                    className="btn btn--solid"
-                    style={{ padding: '12px 18px', fontSize: '11px', flex: 1 }}
+                    variant="default"
+                    size="sm"
+                    style={{ flex: 1 }}
                     onClick={() => setActiveModal('papers')}
                   >
                     Manage Papers
-                  </button>
-                  <button
+                  </UiverseButton>
+                  <UiverseButton
                     type="button"
-                    className="btn btn--ghost"
-                    style={{ padding: '12px 18px', fontSize: '11px', flex: 1, color: '#fff' }}
+                    variant="ghost"
+                    size="sm"
+                    style={{ flex: 1 }}
                     onClick={() => setActiveModal(null)}
                   >
                     Close
-                  </button>
+                  </UiverseButton>
                 </div>
               </div>
             )}
@@ -1768,13 +1766,14 @@ export default function App() {
                   }}
                   required
                 />
-                <button
+                <UiverseButton
                   type="submit"
-                  className="btn btn--solid"
-                  style={{ padding: '14px 20px', fontSize: '12px' }}
+                  variant="default"
+                  size="md"
+                  fullWidth
                 >
                   Verify Center Authorization
-                </button>
+                </UiverseButton>
               </form>
             )}
 
@@ -1912,37 +1911,26 @@ export default function App() {
                   <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>
                     * Enrolling in <strong style={{ color: '#ffffff' }}>{selectedCount} Cambridge Subjects</strong>
                   </p>
-                  <button
+                  <UiverseButton
                     type="button"
+                    variant="cyan"
+                    size="xs"
                     onClick={() => setActiveModal('papers')}
-                    style={{
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px dashed var(--line)',
-                      color: '#ffffff',
-                      fontSize: '11px',
-                      padding: '4px 10px',
-                      cursor: 'pointer',
-                    }}
                   >
                     [ Search & Edit Subjects ({selectedCount}) ↗ ]
-                  </button>
+                  </UiverseButton>
                 </div>
 
-                <button
+                <UiverseButton
                   type="submit"
-                  className="btn btn--solid"
+                  variant={isFormValid ? 'default' : 'ghost'}
+                  size="md"
+                  fullWidth
                   disabled={!isFormValid}
-                  style={{
-                    padding: '14px 20px',
-                    fontSize: '12px',
-                    cursor: isFormValid ? 'pointer' : 'not-allowed',
-                    background: isFormValid ? 'var(--fill-solid)' : 'rgba(255,255,255,0.06)',
-                    color: isFormValid ? '#ffffff' : 'var(--text-dimmer)',
-                  }}
                   title={isFormValid ? 'Submit registration' : 'Complete email, Discord handle, and at least 1 subject to submit'}
                 >
                   {isFormValid ? '✓ Submit Registration & Notify Admins' : 'Complete Requirements to Submit'}
-                </button>
+                </UiverseButton>
               </form>
             )}
 
@@ -2102,24 +2090,26 @@ export default function App() {
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button
+                  <UiverseButton
                     type="button"
-                    className="btn btn--solid"
-                    style={{ padding: '12px 16px', fontSize: '11px', flex: 1 }}
+                    variant="default"
+                    size="sm"
+                    style={{ flex: 1 }}
                     onClick={() => {
                       setActiveModal('portal');
                     }}
                   >
                     View My Timetable
-                  </button>
-                  <button
+                  </UiverseButton>
+                  <UiverseButton
                     type="button"
-                    className="btn btn--ghost"
-                    style={{ padding: '12px 16px', fontSize: '11px', flex: 1, color: '#fff' }}
+                    variant="ghost"
+                    size="sm"
+                    style={{ flex: 1 }}
                     onClick={() => setActiveModal(null)}
                   >
                     Close
-                  </button>
+                  </UiverseButton>
                 </div>
               </div>
             )}
@@ -2265,40 +2255,19 @@ export default function App() {
                       </div>
                     </div>
 
-                    <button
+                    <UiverseButton
                       type="button"
-                      className="btn btn--solid"
+                      variant={pdfDownloaded ? 'emerald' : 'cyan'}
+                      size="sm"
                       onClick={() => {
                         generateStatementOfEntryPDF(lastEnrolledRecord, subjects);
                         setPdfDownloaded(true);
                       }}
-                      style={{
-                        background: pdfDownloaded ? '#10b981' : '#3b82f6',
-                        color: pdfDownloaded ? '#000' : '#ffffff',
-                        padding: '10px 16px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        border: 'none',
-                      }}
+                      icon={pdfDownloaded ? <FileCheck size={15} /> : <Download size={15} />}
                       title="Download official Cambridge Statement of Entry PDF for your records"
                     >
-                      {pdfDownloaded ? (
-                        <>
-                          <FileCheck size={15} />
-                          <span>PDF Downloaded (Download Again)</span>
-                        </>
-                      ) : (
-                        <>
-                          <Download size={15} />
-                          <span>Download Statement of Entry (PDF)</span>
-                        </>
-                      )}
-                    </button>
+                      {pdfDownloaded ? 'PDF Downloaded (Download Again)' : 'Download Statement of Entry (PDF)'}
+                    </UiverseButton>
                   </div>
                 )}
 
@@ -2325,53 +2294,47 @@ export default function App() {
                       Admins will DM <strong style={{ color: '#60a5fa' }}>{discord || 'your Discord handle'}</strong> in the server.
                     </div>
                   </div>
-                  <a
+                  <UiverseButton
+                    as="a"
                     href={DISCORD_INVITE_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="discord-btn-primary"
-                    style={{ padding: '8px 14px' }}
+                    variant="discord"
+                    size="xs"
                   >
-                    <span>Join Server ↗</span>
-                  </a>
+                    Join Server ↗
+                  </UiverseButton>
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <button
+                  <UiverseButton
                     type="button"
-                    className="btn btn--solid"
-                    style={{
-                      padding: '12px 14px',
-                      fontSize: '11px',
-                      flex: '1 1 200px',
-                      background: '#60a5fa',
-                      color: '#000',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                    }}
+                    variant="cyan"
+                    size="sm"
+                    style={{ flex: '1 1 200px' }}
                     onClick={() => setActiveModal('timetable')}
+                    icon={<Calendar size={14} />}
                   >
-                    <Calendar size={14} />
-                    <span>View Exam Timetable & Spacing</span>
-                  </button>
-                  <button
+                    View Exam Timetable & Spacing
+                  </UiverseButton>
+                  <UiverseButton
                     type="button"
-                    className="btn btn--ghost"
-                    style={{ padding: '12px 14px', fontSize: '11px', flex: '1 1 140px' }}
+                    variant="ghost"
+                    size="sm"
+                    style={{ flex: '1 1 140px' }}
                     onClick={() => setActiveModal('admin')}
                   >
                     Admin Registry Log
-                  </button>
-                  <button
+                  </UiverseButton>
+                  <UiverseButton
                     type="button"
-                    className="btn btn--ghost"
-                    style={{ padding: '12px 14px', fontSize: '11px', flex: '0 0 70px', color: '#fff' }}
+                    variant="ghost"
+                    size="sm"
+                    style={{ flex: '0 0 70px' }}
                     onClick={() => setActiveModal(null)}
                   >
                     Done
-                  </button>
+                  </UiverseButton>
                 </div>
               </div>
             )}
