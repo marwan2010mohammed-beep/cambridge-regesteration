@@ -151,6 +151,8 @@ export const FAQSection: React.FC<FAQSectionProps> = ({
                 text="FREQUENTLY ASKED QUESTIONS"
                 as="h2"
                 className="text-base sm:text-lg font-bold text-white tracking-wider"
+                showUnderline={true}
+                underlineColor="#60a5fa"
               />
               <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0, marginTop: '2px' }}>
                 Direct guidance for Cambridge Oct/Nov 2026 candidates & center administrators
