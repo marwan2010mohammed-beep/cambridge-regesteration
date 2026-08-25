@@ -56,34 +56,52 @@ Greetings candidate. Welcome to **Cambridge Nightmare Support**, your specialize
 
 const SUGGESTION_CHIPS = [
   {
-    icon: Flame,
-    label: '2-Week Syllabus Triage Plan',
-    prompt: 'I am 2 weeks away from my Cambridge IGCSE exams and haven\'t finished the syllabus. Give me an emergency triage plan to maximize my marks.',
+    icon: BookOpen,
+    label: 'What is the syllabus for 0580?',
+    prompt: 'What is the syllabus coverage, component options, and exam format for Cambridge IGCSE Mathematics 0580?',
+    badge: 'Syllabus',
+  },
+  {
+    icon: Calendar,
+    label: 'How do I handle exam clashes?',
+    prompt: 'How do I handle exam clashes if I have two Cambridge papers scheduled in the same morning or afternoon session?',
+    badge: 'Timetable',
+  },
+  {
+    icon: FileText,
+    label: 'How do I get my Statement of Entry?',
+    prompt: 'How do I retrieve my official Cambridge Statement of Entry (SOE), center number, and 4-digit candidate number?',
+    badge: 'Official Document',
+  },
+  {
+    icon: Layers,
+    label: 'What are the grade thresholds?',
+    prompt: 'How do Cambridge grade thresholds and component weightings work? How are raw marks converted to A* grades?',
+    badge: 'Grading',
   },
   {
     icon: BookOpen,
     label: '0580 Math P4 Traps & Tips',
     prompt: 'What are the most common trap questions and lost marks in Cambridge IGCSE Mathematics 0580 Paper 4 (Extended)?',
+    badge: 'Tips',
   },
   {
     icon: Sparkles,
     label: '0620 Chemistry P6 Alt to Practical',
-    prompt: 'Give me a comprehensive checklist for Cambridge IGCSE Chemistry 0620 Paper 6 (Alternative to Practical): flame tests, gas tests, and experimental accuracy improvements.',
+    prompt: 'Give me a comprehensive checklist for Cambridge IGCSE Chemistry 0620 Paper 6 (Alternative to Practical): flame tests, gas tests, and experimental accuracy.',
+    badge: 'Chemistry',
   },
   {
-    icon: Calendar,
-    label: 'Timetable Clash & Key Time Rules',
-    prompt: 'How does Cambridge Full Centre Supervision and Key Time rules work if I have two papers scheduled in the same morning session?',
-  },
-  {
-    icon: Layers,
-    label: 'Grade Thresholds & Weighting',
-    prompt: 'How do Cambridge grade thresholds and component weighting work? If I mess up one paper, can another paper save my overall grade?',
+    icon: Flame,
+    label: '2-Week Emergency Triage Plan',
+    prompt: 'I am 2 weeks away from my Cambridge IGCSE exams and haven\'t finished the syllabus. Give me an emergency triage plan to maximize my marks.',
+    badge: 'Triage',
   },
   {
     icon: ShieldAlert,
-    label: 'Exam Hall Panic & Time Per Mark',
+    label: 'Exam Hall Panic & Time Strategy',
     prompt: 'What is the optimal time-per-mark strategy in a 2-hour Cambridge paper, and what should I do if I blank out on question 1?',
+    badge: 'Strategy',
   },
 ];
 
@@ -1107,18 +1125,42 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
 
         </div>
 
-        {/* Suggestion Chips */}
+        {/* Quick Reply Suggestion Chips */}
         <div
           style={{
-            padding: '8px 20px',
-            background: 'rgba(15, 23, 42, 0.7)',
-            borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+            padding: '10px 20px',
+            background: 'rgba(15, 23, 42, 0.85)',
+            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
             display: 'flex',
-            gap: '8px',
+            alignItems: 'center',
+            gap: '10px',
             overflowX: 'auto',
             scrollbarWidth: 'none',
           }}
         >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              fontSize: '10px',
+              fontWeight: 700,
+              fontFamily: 'var(--font-mono)',
+              color: '#60a5fa',
+              background: 'rgba(37, 99, 235, 0.2)',
+              border: '1px solid rgba(96, 165, 250, 0.3)',
+              borderRadius: '12px',
+              padding: '4px 8px',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}
+          >
+            <Sparkles size={11} color="#60a5fa" />
+            <span>QUICK REPLIES</span>
+          </div>
+
           {stagedAttachments.length > 0
             ? ATTACHMENT_SUGGESTION_CHIPS.map((promptText, idx) => (
                 <button
@@ -1127,12 +1169,12 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
                   onClick={() => handleSendMessage(promptText)}
                   disabled={isLoading}
                   style={{
-                    background: 'rgba(37, 99, 235, 0.15)',
-                    border: '1px solid rgba(96, 165, 250, 0.3)',
+                    background: 'rgba(37, 99, 235, 0.18)',
+                    border: '1px solid rgba(96, 165, 250, 0.4)',
                     borderRadius: '20px',
-                    padding: '5px 12px',
+                    padding: '6px 14px',
                     color: '#93c5fd',
-                    fontSize: '11px',
+                    fontSize: '12px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
@@ -1140,15 +1182,16 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
                     whiteSpace: 'nowrap',
                     transition: 'all 0.2s ease',
                     flexShrink: 0,
+                    minHeight: '34px',
                   }}
                   onMouseEnter={(e) => {
                     if (!isLoading) {
-                      e.currentTarget.style.background = 'rgba(59, 130, 246, 0.3)';
+                      e.currentTarget.style.background = 'rgba(59, 130, 246, 0.35)';
                       e.currentTarget.style.color = '#ffffff';
                     }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(37, 99, 235, 0.15)';
+                    e.currentTarget.style.background = 'rgba(37, 99, 235, 0.18)';
                     e.currentTarget.style.color = '#93c5fd';
                   }}
                 >
@@ -1165,35 +1208,51 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
                     onClick={() => handleSendMessage(chip.prompt)}
                     disabled={isLoading}
                     style={{
-                      background: 'rgba(255, 255, 255, 0.04)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
                       borderRadius: '20px',
-                      padding: '5px 12px',
-                      color: '#cbd5e1',
-                      fontSize: '11px',
+                      padding: '6px 14px',
+                      color: '#e2e8f0',
+                      fontSize: '12px',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '6px',
+                      gap: '7px',
                       cursor: isLoading ? 'not-allowed' : 'pointer',
                       whiteSpace: 'nowrap',
                       transition: 'all 0.2s ease',
                       flexShrink: 0,
+                      minHeight: '34px',
                     }}
                     onMouseEnter={(e) => {
                       if (!isLoading) {
-                        e.currentTarget.style.background = 'rgba(59, 130, 246, 0.2)';
-                        e.currentTarget.style.borderColor = 'rgba(96, 165, 250, 0.4)';
+                        e.currentTarget.style.background = 'rgba(59, 130, 246, 0.25)';
+                        e.currentTarget.style.borderColor = 'rgba(96, 165, 250, 0.5)';
                         e.currentTarget.style.color = '#ffffff';
                       }
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                      e.currentTarget.style.color = '#cbd5e1';
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                      e.currentTarget.style.color = '#e2e8f0';
                     }}
                   >
-                    <Icon size={12} color="#60a5fa" />
+                    <Icon size={13} color="#60a5fa" />
                     <span>{chip.label}</span>
+                    {chip.badge && (
+                      <span
+                        style={{
+                          fontSize: '9px',
+                          fontFamily: 'var(--font-mono)',
+                          background: 'rgba(96, 165, 250, 0.15)',
+                          color: '#93c5fd',
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          border: '1px solid rgba(96, 165, 250, 0.25)',
+                        }}
+                      >
+                        {chip.badge}
+                      </span>
+                    )}
                   </button>
                 );
               })}
