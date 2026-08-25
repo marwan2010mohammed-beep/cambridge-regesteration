@@ -30,7 +30,7 @@ export function OversizedClippedHeading({
     },
   };
 
-  // Clipping Mask Slide-In + Fade variants (Power4.out easing: fast start, dramatic slow down)
+  // Clipping Mask Slide-In + Fade variants (Power4.out easing: fast start, dramatic cinematic deceleration)
   const wordClipVariants: Variants = {
     hidden: {
       y: '120%',
@@ -42,8 +42,8 @@ export function OversizedClippedHeading({
       opacity: 1,
       filter: 'blur(0px)',
       transition: {
-        duration: 0.9,
-        ease: [0.1, 1, 0.1, 1], // Exact Power4.out / Quintic deceleration curve
+        duration: 0.95,
+        ease: [0.165, 0.84, 0.44, 1], // Precise Power4.out (Quintic out) easing curve for a premium cinematic feel
       },
     },
   };
