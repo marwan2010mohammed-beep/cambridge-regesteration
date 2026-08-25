@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { AnimatedHeading } from './AnimatedHeading';
 import {
   HelpCircle,
   ChevronDown,
@@ -146,19 +147,11 @@ export const FAQSection: React.FC<FAQSectionProps> = ({
               <HelpCircle size={20} color="#60a5fa" />
             </div>
             <div>
-              <h2
-                id="faq-section-heading"
-                style={{
-                  fontSize: '16px',
-                  fontWeight: 700,
-                  color: '#ffffff',
-                  letterSpacing: '0.04em',
-                  margin: 0,
-                  fontFamily: 'var(--font-sora)',
-                }}
-              >
-                FREQUENTLY ASKED QUESTIONS
-              </h2>
+              <AnimatedHeading
+                text="FREQUENTLY ASKED QUESTIONS"
+                as="h2"
+                className="text-base sm:text-lg font-bold text-white tracking-wider"
+              />
               <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0, marginTop: '2px' }}>
                 Direct guidance for Cambridge Oct/Nov 2026 candidates & center administrators
               </p>

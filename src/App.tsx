@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useLayoutEffect, Suspense, lazy } from 'react';
+import { motion, AnimatePresence, Variants } from 'motion/react';
 import { CountdownTimer } from './components/CountdownTimer';
 import { ALL_OCT_NOV_SUBJECTS } from './data/subjects';
 import { ExamSubject, CandidateEnrollment } from './types';
@@ -25,9 +26,71 @@ const INITIAL_ENROLLMENTS: CandidateEnrollment[] = [];
 const LOCAL_STORAGE_KEY = 'cambridge_igcse_enrollments_v1';
 const LOCAL_STORAGE_SUBJECTS_KEY = 'cambridge_igcse_selected_subjects_v1';
 
+const wizardStepVariants: Variants = {
+  enter: (dir: number) => ({
+    x: dir >= 0 ? 30 : -30,
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+  },
+  exit: (dir: number) => ({
+    x: dir >= 0 ? -30 : 30,
+    opacity: 0,
+  }),
+};
+
+function WizardStepContentWrapper({
+  currentStep,
+  direction,
+  children,
+}: {
+  currentStep: number;
+  direction: number;
+  children: React.ReactNode;
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [parentHeight, setParentHeight] = useState<number>(0);
+
+  useLayoutEffect(() => {
+    if (containerRef.current) {
+      setParentHeight(containerRef.current.offsetHeight);
+    }
+  }, [currentStep, children]);
+
+  return (
+    <motion.div
+      style={{ position: 'relative', overflow: 'hidden' }}
+      animate={{ height: parentHeight || 'auto' }}
+      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+    >
+      <AnimatePresence initial={false} mode="wait" custom={direction}>
+        <motion.div
+          key={currentStep}
+          ref={containerRef}
+          custom={direction}
+          variants={wizardStepVariants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{
+            x: { type: 'spring', stiffness: 300, damping: 30 },
+            opacity: { duration: 0.2 },
+          }}
+          className="w-full"
+        >
+          {children}
+        </motion.div>
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
+  const [stepDirection, setStepDirection] = useState<number>(1);
   const [email, setEmail] = useState('');
   const [discord, setDiscord] = useState('');
   const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -756,44 +819,106 @@ export default function App() {
             onSubmit={handleEnrollmentSubmit}
           >
 
-            {/* WIZARD PROGRESS BAR */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px', position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '50%', left: '0', right: '0', height: '2px', background: 'var(--line)', zIndex: 0, transform: 'translateY(-50%)' }} />
-              <div style={{ position: 'absolute', top: '50%', left: '0', width: `${(wizardStep - 1) * 50}%`, height: '2px', background: '#60a5fa', zIndex: 0, transform: 'translateY(-50%)', transition: 'width 0.3s ease' }} />
-              
-              {[1, 2, 3].map((step) => (
-                <div 
-                  key={step}
-                  onClick={() => {
-                    if (step < wizardStep) setWizardStep(step as 1|2|3);
-                    if (step === 2 && emailValidation.isValid && discordValidation.isValid) setWizardStep(2);
-                    if (step === 3 && emailValidation.isValid && discordValidation.isValid && selectedCount > 0) setWizardStep(3);
-                  }}
-                  style={{
-                    position: 'relative',
-                    zIndex: 1,
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    background: wizardStep >= step ? '#60a5fa' : '#1e1f22',
-                    border: `2px solid ${wizardStep >= step ? '#60a5fa' : 'var(--line)'}`,
-                    color: wizardStep >= step ? '#000' : 'var(--text-dim)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '14px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    boxShadow: wizardStep === step ? '0 0 0 4px rgba(96, 165, 250, 0.25)' : 'none',
-                    transition: 'all 0.2s ease',
-                    userSelect: 'none',
-                  }}
-                >
-                  {step === 1 && <Users size={16} />}
-                  {step === 2 && <Layers size={16} />}
-                  {step === 3 && <FileCheck size={16} />}
-                </div>
-              ))}
+            {/* ANIMATED STEPPER PROGRESS INDICATORS */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', padding: '0 8px' }}>
+              {[1, 2, 3].map((step, idx) => {
+                const isCompleted = wizardStep > step;
+                const isActive = wizardStep === step;
+                const isNotLast = idx < 2;
+
+                const changeStep = (target: 1 | 2 | 3) => {
+                  if (target === wizardStep) return;
+                  if (target < wizardStep) {
+                    setStepDirection(-1);
+                    setWizardStep(target);
+                  } else if (
+                    (target === 2 && emailValidation.isValid && discordValidation.isValid) ||
+                    (target === 3 && emailValidation.isValid && discordValidation.isValid && selectedCount > 0)
+                  ) {
+                    setStepDirection(1);
+                    setWizardStep(target);
+                  }
+                };
+
+                return (
+                  <React.Fragment key={step}>
+                    <div
+                      onClick={() => changeStep(step as 1 | 2 | 3)}
+                      style={{
+                        position: 'relative',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                      }}
+                      title={`Go to step ${step}`}
+                    >
+                      <motion.div
+                        animate={{
+                          scale: isActive ? 1.08 : 1,
+                          backgroundColor: isCompleted ? '#2563eb' : isActive ? 'rgba(37, 99, 235, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                          borderColor: isCompleted ? '#60a5fa' : isActive ? '#60a5fa' : 'rgba(255, 255, 255, 0.15)',
+                          color: isCompleted ? '#ffffff' : isActive ? '#60a5fa' : 'var(--text-dim)',
+                        }}
+                        transition={{ duration: 0.3 }}
+                        style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '50%',
+                          border: '2px solid',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 700,
+                          fontSize: '14px',
+                          position: 'relative',
+                          zIndex: 2,
+                          boxShadow: isActive ? '0 0 16px rgba(96, 165, 250, 0.35)' : 'none',
+                        }}
+                      >
+                        {isCompleted ? (
+                          <Check size={18} color="#ffffff" strokeWidth={3} />
+                        ) : step === 1 ? (
+                          <Users size={17} />
+                        ) : step === 2 ? (
+                          <Layers size={17} />
+                        ) : (
+                          <FileCheck size={17} />
+                        )}
+                      </motion.div>
+
+                      {isActive && (
+                        <motion.div
+                          layoutId="active-step-glow"
+                          style={{
+                            position: 'absolute',
+                            inset: '-4px',
+                            borderRadius: '50%',
+                            background: 'rgba(96, 165, 250, 0.35)',
+                            filter: 'blur(6px)',
+                            zIndex: 1,
+                          }}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                        />
+                      )}
+                    </div>
+
+                    {isNotLast && (
+                      <div style={{ position: 'relative', flex: 1, height: '2px', margin: '0 12px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '999px', overflow: 'hidden' }}>
+                        <motion.div
+                          style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, #2563eb, #60a5fa)', transformOrigin: 'left' }}
+                          initial={{ scaleX: 0 }}
+                          animate={{ scaleX: wizardStep > step ? 1 : 0 }}
+                          transition={{ duration: 0.5, ease: [0.33, 1, 0.68, 1] }}
+                        />
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </div>
 
             <div style={{ marginBottom: '20px', textAlign: 'center' }}>
@@ -807,8 +932,9 @@ export default function App() {
               </p>
             </div>
 
-            {wizardStep === 1 && (
-              <div className="wizard-step" style={{ animation: 'fadeIn 0.3s ease' }}>
+            <WizardStepContentWrapper currentStep={wizardStep} direction={stepDirection}>
+              {wizardStep === 1 && (
+                <div className="wizard-step">
             {/* Email Field with Live Check */}
             <div>
               <div className="input-field-wrapper">
@@ -1034,6 +1160,7 @@ export default function App() {
                       setEmailTouched(true);
                       setDiscordTouched(true);
                       if (emailValidation.isValid && discordValidation.isValid) {
+                        setStepDirection(1);
                         setWizardStep(2);
                       }
                     }}
@@ -1045,7 +1172,7 @@ export default function App() {
             )}
 
             {wizardStep === 2 && (
-              <div className="wizard-step" style={{ animation: 'fadeIn 0.3s ease' }}>
+              <div className="wizard-step">
             {/* Interactive Inline Subject Search & Quick Select */}
             <div className="inline-subject-search-container" ref={inlineSearchContainerRef}>
               <div className="input-field-wrapper">
@@ -1300,7 +1427,10 @@ export default function App() {
                     type="button"
                     variant="ghost"
                     size="lg"
-                    onClick={() => setWizardStep(1)}
+                    onClick={() => {
+                      setStepDirection(-1);
+                      setWizardStep(1);
+                    }}
                   >
                     ← Back
                   </UiverseButton>
@@ -1311,6 +1441,7 @@ export default function App() {
                     fullWidth
                     onClick={() => {
                       if (selectedCount > 0) {
+                        setStepDirection(1);
                         setWizardStep(3);
                       } else {
                         alert('Please select at least 1 subject to continue.');
@@ -1324,7 +1455,7 @@ export default function App() {
             )}
 
             {wizardStep === 3 && (
-              <div className="wizard-step" style={{ animation: 'fadeIn 0.3s ease' }}>
+              <div className="wizard-step">
             {/* Quick Papers Selector Bar */}
             <button
               type="button"
@@ -1599,7 +1730,10 @@ export default function App() {
                       type="button"
                       variant="ghost"
                       size="md"
-                      onClick={() => setWizardStep(2)}
+                      onClick={() => {
+                        setStepDirection(-1);
+                        setWizardStep(2);
+                      }}
                       style={{ flex: 1 }}
                     >
                       ← Edit Subjects
@@ -1618,6 +1752,7 @@ export default function App() {
                 </div>
               </div>
             )}
+            </WizardStepContentWrapper>
 
 </form>
 

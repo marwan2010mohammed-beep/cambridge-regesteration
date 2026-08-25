@@ -1365,7 +1365,7 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
           </div>
         )}
 
-        {/* Input Bar */}
+        {/* Input Bar with Radiant Kinetic Prompt Input styling */}
         <footer
           style={{
             padding: '12px 20px 16px',
@@ -1373,129 +1373,135 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
             borderTop: '1px solid rgba(255, 255, 255, 0.08)',
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'flex-end',
-              gap: '8px',
-              background: 'rgba(2, 6, 23, 0.8)',
-              border: '1px solid rgba(96, 165, 250, 0.3)',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)',
-            }}
-          >
-            {/* Attachment Buttons */}
-            <div style={{ display: 'flex', gap: '4px', paddingBottom: '2px' }}>
-              <button
-                type="button"
-                id="nightmare-photo-attach-btn"
-                onClick={() => imageInputRef.current?.click()}
+          <div className="radiant-input-wrapper">
+            {/* Animated Kinetic Gradient Border Mask */}
+            <div className="radiant-input-border" />
+
+            <div
+              style={{
+                position: 'relative',
+                zIndex: 10,
+                display: 'flex',
+                alignItems: 'flex-end',
+                gap: '8px',
+                padding: '10px 14px',
+                borderRadius: '12px',
+                background: 'rgba(2, 6, 23, 0.85)',
+                backdropFilter: 'blur(12px)',
+              }}
+            >
+              {/* Attachment Buttons */}
+              <div style={{ display: 'flex', gap: '4px', paddingBottom: '2px' }}>
+                <button
+                  type="button"
+                  id="nightmare-photo-attach-btn"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={isLoading}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '8px',
+                    width: '34px',
+                    height: '34px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#93c5fd',
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  title="Attach question photo or diagram (PNG, JPG, WebP)"
+                >
+                  <ImageIcon size={15} />
+                </button>
+
+                <button
+                  type="button"
+                  id="nightmare-file-attach-btn"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isLoading}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '8px',
+                    width: '34px',
+                    height: '34px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#cbd5e1',
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  title="Attach past paper PDF or notes"
+                >
+                  <Paperclip size={15} />
+                </button>
+              </div>
+
+              <textarea
+                ref={textareaRef}
+                id="nightmare-chat-input"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  stagedAttachments.length > 0
+                    ? "Describe what you need help with in this attached file (or press Enter to analyze)..."
+                    : "Ask or attach question photo / diagram / PDF to study together..."
+                }
                 disabled={isLoading}
+                rows={1}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '6px',
-                  width: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#93c5fd',
-                  cursor: isLoading ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease',
+                  flex: 1,
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  color: '#ffffff',
+                  fontSize: '13px',
+                  lineHeight: 1.5,
+                  resize: 'none',
+                  maxHeight: '120px',
+                  fontFamily: 'inherit',
+                  boxSizing: 'border-box',
                 }}
-                title="Attach question photo or diagram (PNG, JPG, WebP)"
-              >
-                <ImageIcon size={15} />
-              </button>
+              />
 
               <button
                 type="button"
-                id="nightmare-file-attach-btn"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading}
+                id="nightmare-chat-send-btn"
+                onClick={() => handleSendMessage()}
+                disabled={(!inputMessage.trim() && stagedAttachments.length === 0) || isLoading}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '6px',
-                  width: '32px',
-                  height: '32px',
+                  background:
+                    (inputMessage.trim() || stagedAttachments.length > 0) && !isLoading
+                      ? 'linear-gradient(135deg, #2563eb, #3b82f6)'
+                      : 'rgba(255, 255, 255, 0.08)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  width: '38px',
+                  height: '38px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#cbd5e1',
-                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  color: '#ffffff',
+                  cursor:
+                    (inputMessage.trim() || stagedAttachments.length > 0) && !isLoading
+                      ? 'pointer'
+                      : 'not-allowed',
                   transition: 'all 0.2s ease',
+                  flexShrink: 0,
+                  boxShadow:
+                    (inputMessage.trim() || stagedAttachments.length > 0) && !isLoading
+                      ? '0 0 16px rgba(59, 130, 246, 0.5)'
+                      : 'none',
                 }}
-                title="Attach past paper PDF or notes"
+                title="Send message or solve attached question (Enter)"
+                aria-label="Send message"
               >
-                <Paperclip size={15} />
+                <Send size={16} />
               </button>
             </div>
-
-            <textarea
-              ref={textareaRef}
-              id="nightmare-chat-input"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                stagedAttachments.length > 0
-                  ? "Describe what you need help with in this attached file (or press Enter to analyze)..."
-                  : "Ask or attach question photo / diagram / PDF to study together..."
-              }
-              disabled={isLoading}
-              rows={1}
-              style={{
-                flex: 1,
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                color: '#ffffff',
-                fontSize: '13px',
-                lineHeight: 1.5,
-                resize: 'none',
-                maxHeight: '120px',
-                fontFamily: 'inherit',
-                boxSizing: 'border-box',
-              }}
-            />
-
-            <button
-              type="button"
-              id="nightmare-chat-send-btn"
-              onClick={() => handleSendMessage()}
-              disabled={(!inputMessage.trim() && stagedAttachments.length === 0) || isLoading}
-              style={{
-                background:
-                  (inputMessage.trim() || stagedAttachments.length > 0) && !isLoading
-                    ? 'linear-gradient(135deg, #2563eb, #3b82f6)'
-                    : 'rgba(255, 255, 255, 0.08)',
-                border: 'none',
-                borderRadius: '6px',
-                width: '36px',
-                height: '36px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ffffff',
-                cursor:
-                  (inputMessage.trim() || stagedAttachments.length > 0) && !isLoading
-                    ? 'pointer'
-                    : 'not-allowed',
-                transition: 'all 0.2s ease',
-                flexShrink: 0,
-                boxShadow:
-                  (inputMessage.trim() || stagedAttachments.length > 0) && !isLoading
-                    ? '0 0 12px rgba(59, 130, 246, 0.4)'
-                    : 'none',
-              }}
-              title="Send message or solve attached question (Enter)"
-              aria-label="Send message"
-            >
-              <Send size={16} />
-            </button>
           </div>
 
           <div
