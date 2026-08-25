@@ -7,8 +7,9 @@ interface UiverseNavTabsProps {
   onSelectTab: (modal: 'story' | 'papers' | 'timetable' | 'identity' | 'admin') => void;
   orientation?: 'horizontal' | 'vertical';
   timetableSummary?: {
-    directClashesCount: number;
-    totalScheduledPapers: number;
+    directClashesCount?: number;
+    totalScheduledPapers?: number;
+    totalPapers?: number;
   };
 }
 
@@ -99,19 +100,19 @@ export const UiverseNavTabs: React.FC<UiverseNavTabsProps> = ({
           title="Cambridge Oct/Nov 2026 Examination Schedule & Direct Clash Monitor"
         >
           <span>Timetable</span>
-          {timetableSummary && timetableSummary.directClashesCount > 0 ? (
+          {timetableSummary && (timetableSummary.directClashesCount ?? 0) > 0 ? (
             <span
               className="notification notification--clash"
               title={`${timetableSummary.directClashesCount} Direct Examination Clashes!`}
             >
               !
             </span>
-          ) : timetableSummary && timetableSummary.totalScheduledPapers > 0 ? (
+          ) : timetableSummary && ((timetableSummary.totalScheduledPapers ?? timetableSummary.totalPapers ?? 0) > 0) ? (
             <span
               className="notification notification--subtle"
-              title={`${timetableSummary.totalScheduledPapers} component papers scheduled`}
+              title={`${timetableSummary.totalScheduledPapers ?? timetableSummary.totalPapers} component papers scheduled`}
             >
-              {timetableSummary.totalScheduledPapers}
+              {timetableSummary.totalScheduledPapers ?? timetableSummary.totalPapers}
             </span>
           ) : null}
         </label>

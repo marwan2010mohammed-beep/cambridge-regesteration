@@ -88,14 +88,46 @@ export interface TimetableDaySchedule {
 
 export interface TimetableSummary {
   totalPapers: number;
+  totalScheduledPapers?: number;
   totalExamDays: number;
   startDate: string;
   endDate: string;
   durationSpanDays: number;
   directClashesCount: number;
   sameDayDoubleCount: number;
+  sameDayDoublesCount?: number;
   averageGapDays: number;
   busiestWeek: string;
   clashes: TimetableClash[];
   days: TimetableDaySchedule[];
 }
+
+export interface ChatAttachment {
+  id: string;
+  name: string;
+  type: 'image' | 'file';
+  mimeType: string;
+  size: number;
+  dataUrl: string; // Base64 data URL
+}
+
+export type ChatModelId = 'gemini-3.5-flash' | 'gemini-3.1-flash-lite' | 'gemini-3.1-pro-preview';
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'model';
+  text: string;
+  timestamp: string;
+  modelUsed?: string;
+  isError?: boolean;
+  attachments?: ChatAttachment[];
+}
+
+export interface CandidateChatContext {
+  selectedSubjects?: string[];
+  email?: string;
+  discord?: string;
+  candidateName?: string;
+  clashesCount?: number;
+}
+

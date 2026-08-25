@@ -477,12 +477,14 @@ export function generateTimetableSummary(subjects: ExamSubject[]): TimetableSumm
 
   return {
     totalPapers,
+    totalScheduledPapers: totalPapers,
     totalExamDays,
     startDate,
     endDate,
     durationSpanDays,
     directClashesCount,
     sameDayDoubleCount,
+    sameDayDoublesCount: sameDayDoubleCount,
     averageGapDays,
     busiestWeek,
     clashes,

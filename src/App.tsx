@@ -14,7 +14,9 @@ import { dispatchEmailConfirmation } from './utils/emailService';
 import { UiverseLoader } from './components/UiverseLoader';
 import { UiverseNavTabs } from './components/UiverseNavTabs';
 import { DiscordLightButton } from './components/DiscordLightButton';
-import { MessageSquare, Mail, ShieldAlert, CheckCircle2, Copy, Check, BookOpen, Search, X, Plus, Layers, ExternalLink, ArrowUpRight, Radio, Users, Calendar, AlertTriangle, Clock, FileText, Download, FileCheck, ShieldCheck } from 'lucide-react';
+import { CambridgeNightmareSupportModal } from './components/CambridgeNightmareSupportModal';
+import confetti from 'canvas-confetti';
+import { MessageSquare, Mail, ShieldAlert, CheckCircle2, Copy, Check, BookOpen, Search, X, Plus, Layers, ExternalLink, ArrowUpRight, Radio, Users, Calendar, AlertTriangle, Clock, FileText, Download, FileCheck, ShieldCheck, Bot, Sparkles } from 'lucide-react';
 
 export const DISCORD_INVITE_URL = 'https://discord.gg/YD3hR9Sn54';
 
@@ -302,6 +304,19 @@ export default function App() {
       setIsProcessingAction(false);
       setActiveModal('success');
 
+      // Trigger lightweight celebratory confetti effect
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#3b82f6', '#60a5fa', '#93c5fd', '#ffffff', '#22c55e', '#f59e0b'],
+          disableForReducedMotion: true,
+        });
+      } catch (e) {
+        console.warn('Failed to fire confetti effect:', e);
+      }
+
       // Immediately clear all personal information, input fields, and subject/paper selections
       setEmail('');
       setDiscord('');
@@ -501,6 +516,8 @@ export default function App() {
       {/* Background Media & Cinematic Scrim */}
       <div className="hero__media" aria-hidden="true">
         <video
+          id="hero-bg-video"
+          className="hero__video"
           autoPlay
           muted
           loop
@@ -603,6 +620,24 @@ export default function App() {
             />
           </div>
           <div className="mobile-menu__item" style={{ '--i': 1, width: '100%', display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' } as React.CSSProperties}>
+            <UiverseButton
+              type="button"
+              variant="default"
+              size="md"
+              fullWidth
+              id="mobile-nightmare-btn"
+              icon={<Bot size={16} color="#93c5fd" />}
+              onClick={() => {
+                setMenuOpen(false);
+                setActiveModal('nightmare');
+              }}
+              style={{
+                background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.95) 0%, rgba(37, 99, 235, 0.95) 100%)',
+                borderColor: 'rgba(96, 165, 250, 0.6)',
+              }}
+            >
+              Cambridge Nightmare Support
+            </UiverseButton>
             <UiverseButton
               as="a"
               href={DISCORD_INVITE_URL}
@@ -1688,7 +1723,7 @@ export default function App() {
       )}
 
       {/* Interactive Modal System for Cambridge IGCSE Session Management */}
-      {activeModal && activeModal !== 'admin' && activeModal !== 'papers' && activeModal !== 'timetable' && (
+      {activeModal && activeModal !== 'admin' && activeModal !== 'papers' && activeModal !== 'timetable' && activeModal !== 'nightmare' && (
         <div
           className="terminal-modal-backdrop"
           role="dialog"
@@ -2548,7 +2583,7 @@ export default function App() {
                             <div style={{ color: 'var(--text-dim)', fontSize: '10px', marginTop: '2px' }}>Download your comprehensive scheduling receipt.</div>
                           </div>
                           {isGeneratingPDF ? (
-                            <UiverseLoader label="Compiling..." size="xs" />
+                            <UiverseLoader label="Compiling..." size="sm" />
                           ) : (
                             <UiverseButton
                               type="button"
@@ -2658,6 +2693,83 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Cambridge Nightmare Support Multi-Turn Chatbot Modal */}
+      <CambridgeNightmareSupportModal
+        isOpen={activeModal === 'nightmare'}
+        onClose={() => setActiveModal(null)}
+        candidateContext={{
+          selectedSubjects: subjects.filter((s) => s.selected).map((s) => `${s.code} ${s.name} (${s.tier})`),
+          email: email || undefined,
+          discord: discord || undefined,
+          candidateName: candidateName || undefined,
+          clashesCount: timetableSummary.directClashesCount,
+        }}
+      />
+
+      {/* Floating Cambridge Nightmare Support AI Desk Button */}
+      <div
+        className="floating-nightmare-container"
+        style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          zIndex: 890,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: '8px',
+        }}
+      >
+        <button
+          type="button"
+          id="floating-nightmare-support-btn"
+          onClick={() => setActiveModal('nightmare')}
+          className="floating-nightmare-btn"
+          style={{
+            background: 'linear-gradient(135deg, #090e24 0%, #1e3a8a 50%, #2563eb 100%)',
+            border: '1px solid rgba(147, 197, 253, 0.45)',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.6), 0 0 20px rgba(59, 130, 246, 0.35)',
+            borderRadius: '50px',
+            padding: '10px 18px',
+            color: '#ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-sora)',
+            fontSize: '13px',
+            fontWeight: 600,
+            letterSpacing: '0.02em',
+            transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+          title="Cambridge Nightmare Support — AI Exam & Syllabus Crisis Counselor"
+        >
+          <div
+            style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Bot size={18} color="#93c5fd" />
+            <span
+              style={{
+                position: 'absolute',
+                top: '-2px',
+                right: '-2px',
+                width: '7px',
+                height: '7px',
+                borderRadius: '50%',
+                background: '#4ade80',
+                border: '1.5px solid #090e24',
+              }}
+            />
+          </div>
+          <span>Cambridge Nightmare Support</span>
+        </button>
+      </div>
     </section>
   );
 }
