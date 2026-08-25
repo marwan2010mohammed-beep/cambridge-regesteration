@@ -13,6 +13,7 @@ import { UiverseNavTabs } from './components/UiverseNavTabs';
 import { DiscordLightButton } from './components/DiscordLightButton';
 import { FAQSection } from './components/FAQSection';
 import { CambridgeTestimonialsSection } from './components/CambridgeTestimonialsSection';
+import { CambridgeCarouselTestimonials } from './components/CambridgeCarouselTestimonials';
 import { RolodexText } from './components/RolodexText';
 import { ShinyText } from './components/ShinyText';
 import { OversizedClippedHeading } from './components/OversizedClippedHeading';
@@ -614,8 +615,8 @@ export default function App() {
 
       {/* Navigation Header */}
       <nav role="banner">
-        <a href="#top" className="logo" id="brand-logo" aria-label="Cambridge International">
-          CAMBRIDGE
+        <a href="#top" className="logo flex items-center gap-1.5" id="brand-logo" aria-label="Cambridge International">
+          CAMBRIDGE <span className="purple-glow-pulse font-extrabold tracking-wide">NIGHTMARE</span>
         </a>
 
         <div className="nav-cluster">
@@ -1808,6 +1809,9 @@ export default function App() {
 
       {/* Cambridge Nightmare Testimonials Vertical Drift Section */}
       <CambridgeTestimonialsSection />
+
+      {/* Cambridge Carousel Testimonials dot pagination section */}
+      <CambridgeCarouselTestimonials />
 
       {/* Legal Footer */}
       <footer role="contentinfo">

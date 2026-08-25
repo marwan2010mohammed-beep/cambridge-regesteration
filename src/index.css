@@ -2450,6 +2450,22 @@ footer {
   }
 }
 
+/* Purple Text-Shadow Glow Breathing Animation */
+@keyframes purple-glow-pulse {
+  0%, 100% {
+    text-shadow: 0 0 2px rgba(168, 85, 247, 0.1), 0 0 4px rgba(168, 85, 247, 0.05);
+  }
+  50% {
+    text-shadow: 0 0 10px rgba(192, 132, 252, 0.8), 0 0 18px rgba(168, 85, 247, 0.55), 0 0 30px rgba(147, 51, 234, 0.35);
+  }
+}
+
+.purple-glow-pulse {
+  animation: purple-glow-pulse 3.2s ease-in-out infinite;
+  color: #c084fc; /* Soft violet/purple tint */
+  display: inline-block;
+}
+
 
 
 
