@@ -15,6 +15,7 @@ import { FAQSection } from './components/FAQSection';
 import { CambridgeTestimonialsSection } from './components/CambridgeTestimonialsSection';
 import { RolodexText } from './components/RolodexText';
 import { ShinyText } from './components/ShinyText';
+import { OversizedClippedHeading } from './components/OversizedClippedHeading';
 import { MessageSquare, Mail, ShieldAlert, CheckCircle2, Copy, Check, BookOpen, Search, X, Plus, Layers, ExternalLink, ArrowUpRight, Radio, Users, Calendar, AlertTriangle, Clock, FileText, Download, FileCheck, ShieldCheck, Bot, Sparkles } from 'lucide-react';
 
 const AdminRegistryModal = lazy(() => import('./components/AdminRegistryModal'));
@@ -804,9 +805,13 @@ export default function App() {
             <ShinyText text="[ Oct / Nov Registration ]" color="#94a3b8" shineColor="#60a5fa" speed={3} />
           </div>
 
-          <h1 className="hero-h1" id="main-heading">
-            IGCSE
-          </h1>
+          <div id="main-heading">
+            <OversizedClippedHeading
+              text="CAMBRIDGE IGCSE 2026"
+              as="h1"
+              accentColor="#3b82f6"
+            />
+          </div>
 
           <p className="tagline">
             We Deliver{' '}
