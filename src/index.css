@@ -1183,33 +1183,75 @@ nav {
   text-underline-offset: 4px;
 }
 
-/* Footer */
-footer {
+/* Site Footer */
+.site-footer {
   border-top: 1px solid var(--line);
-  padding: clamp(18px, 1.7vw, 30px) var(--gutter);
-  padding-bottom: calc(clamp(18px, 1.7vw, 30px) + env(safe-area-inset-bottom, 0px));
-  text-align: center;
+  padding: clamp(32px, 4vw, 48px) var(--gutter);
+  padding-bottom: calc(clamp(32px, 4vw, 48px) + env(safe-area-inset-bottom, 0px));
+  background: var(--bg);
+  position: relative;
   z-index: 10;
 }
 
-.legal-text {
-  font-weight: 300;
-  font-size: clamp(12px, 0.82vw, 16px);
+.site-footer__content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(24px, 3vw, 36px);
+}
+
+.site-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(16px, 2.5vw, 32px);
+}
+
+.site-footer__link {
+  font-size: clamp(13px, 1vw, 15px);
   color: var(--text-dim);
-  line-height: 1.5;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+  position: relative;
+}
+
+.site-footer__link:hover {
+  color: white;
+}
+
+.site-footer__link--highlight {
+  color: #818cf8;
+}
+
+.site-footer__link--highlight:hover {
+  color: #a5b4fc;
+  text-shadow: 0 0 12px rgba(129, 140, 248, 0.4);
+}
+
+.site-footer__bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.site-footer__copyright {
+  font-size: clamp(13px, 1vw, 15px);
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 400;
   margin: 0;
 }
 
-.legal-link {
-  color: white;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-thickness: 1px;
-  transition: color 0.2s ease;
-}
-
-.legal-link:hover {
-  color: var(--text-dim);
+.site-footer__disclaimer {
+  font-size: clamp(11px, 0.8vw, 13px);
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0;
+  max-width: 600px;
+  line-height: 1.5;
 }
 
 /* Discord Side Card & Floating Hub */
@@ -1630,13 +1672,6 @@ footer {
   }
   .referral-link {
     margin-top: 16px;
-  }
-  footer {
-    padding-top: 10px;
-    padding-bottom: 10px;
-  }
-  .legal-text {
-    font-size: 12px;
   }
   .mobile-menu__nav {
     gap: 20px;
@@ -2199,7 +2234,6 @@ footer {
   .form-validation-feedback,
   .form-live-checklist,
   .referral-link,
-  .legal-text,
   .discord-side-badge,
   .discord-side-status,
   .discord-side-desc,
@@ -2254,7 +2288,7 @@ footer {
   .mobile-menu__link,
   .footer-link,
   .referral-link,
-  .legal-link,
+  .site-footer__link,
   .nav-admin-badge-count,
   .mobile-menu-toggle {
     min-height: 44px !important;

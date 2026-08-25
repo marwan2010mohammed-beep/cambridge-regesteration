@@ -834,7 +834,7 @@ export default function App() {
           >
 
             {/* ANIMATED STEPPER PROGRESS INDICATORS */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', padding: '0 8px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 'clamp(24px, 4vw, 32px)', padding: '0' }}>
               {[1, 2, 3].map((step, idx) => {
                 const isCompleted = wizardStep > step;
                 const isActive = wizardStep === step;
@@ -842,86 +842,96 @@ export default function App() {
 
                 const changeStep = (target: 1 | 2 | 3) => {
                   if (target === wizardStep) return;
-                  if (target < wizardStep) {
-                    setStepDirection(-1);
-                    setWizardStep(target);
-                  } else if (
-                    (target === 2 && emailValidation.isValid && discordValidation.isValid) ||
-                    (target === 3 && emailValidation.isValid && discordValidation.isValid && selectedCount > 0)
-                  ) {
-                    setStepDirection(1);
-                    setWizardStep(target);
-                  }
+                  setStepDirection(target > wizardStep ? 1 : -1);
+                  setWizardStep(target);
                 };
 
                 return (
                   <React.Fragment key={step}>
-                    <div
+                    <button
+                      type="button"
                       onClick={() => changeStep(step as 1 | 2 | 3)}
                       style={{
                         position: 'relative',
                         display: 'flex',
+                        flexDirection: 'column',
                         alignItems: 'center',
-                        justifyContent: 'center',
+                        justifyContent: 'flex-start',
                         cursor: 'pointer',
                         userSelect: 'none',
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        width: 'clamp(65px, 24vw, 85px)',
+                        gap: 'clamp(6px, 1.5vw, 10px)'
                       }}
                       title={`Go to step ${step}`}
                     >
-                      <motion.div
-                        animate={{
-                          scale: isActive ? 1.08 : 1,
-                          backgroundColor: isCompleted ? '#2563eb' : isActive ? 'rgba(37, 99, 235, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                          borderColor: isCompleted ? '#60a5fa' : isActive ? '#60a5fa' : 'rgba(255, 255, 255, 0.15)',
-                          color: isCompleted ? '#ffffff' : isActive ? '#60a5fa' : 'var(--text-dim)',
-                        }}
-                        transition={{ duration: 0.3 }}
-                        style={{
-                          width: '42px',
-                          height: '42px',
-                          borderRadius: '50%',
-                          border: '2px solid',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 700,
-                          fontSize: '14px',
-                          position: 'relative',
-                          zIndex: 2,
-                          boxShadow: isActive ? '0 0 16px rgba(96, 165, 250, 0.35)' : 'none',
-                        }}
-                      >
-                        {isCompleted ? (
-                          <Check size={18} color="#ffffff" strokeWidth={3} />
-                        ) : step === 1 ? (
-                          <Users size={17} />
-                        ) : step === 2 ? (
-                          <Layers size={17} />
-                        ) : (
-                          <FileCheck size={17} />
-                        )}
-                      </motion.div>
-
-                      {isActive && (
+                      <div style={{ position: 'relative' }}>
                         <motion.div
-                          layoutId="active-step-glow"
-                          style={{
-                            position: 'absolute',
-                            inset: '-4px',
-                            borderRadius: '50%',
-                            background: 'rgba(96, 165, 250, 0.35)',
-                            filter: 'blur(6px)',
-                            zIndex: 1,
+                          animate={{
+                            scale: isActive ? 1.08 : 1,
+                            backgroundColor: isCompleted ? '#2563eb' : isActive ? 'rgba(37, 99, 235, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                            borderColor: isCompleted ? '#60a5fa' : isActive ? '#60a5fa' : 'rgba(255, 255, 255, 0.15)',
+                            color: isCompleted ? '#ffffff' : isActive ? '#60a5fa' : 'var(--text-dim)',
                           }}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                        />
-                      )}
-                    </div>
+                          transition={{ duration: 0.3 }}
+                          style={{
+                            width: 'clamp(36px, 10vw, 42px)',
+                            height: 'clamp(36px, 10vw, 42px)',
+                            borderRadius: '50%',
+                            border: '2px solid',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 700,
+                            fontSize: 'clamp(12px, 3.5vw, 14px)',
+                            position: 'relative',
+                            zIndex: 2,
+                            boxShadow: isActive ? '0 0 16px rgba(96, 165, 250, 0.35)' : 'none',
+                          }}
+                        >
+                          {isCompleted ? (
+                            <Check size={18} color="#ffffff" strokeWidth={3} />
+                          ) : step === 1 ? (
+                            <Users size={17} />
+                          ) : step === 2 ? (
+                            <Layers size={17} />
+                          ) : (
+                            <FileCheck size={17} />
+                          )}
+                        </motion.div>
+
+                        {isActive && (
+                          <motion.div
+                            layoutId="active-step-glow"
+                            style={{
+                              position: 'absolute',
+                              inset: '-4px',
+                              borderRadius: '50%',
+                              background: 'rgba(96, 165, 250, 0.35)',
+                              filter: 'blur(6px)',
+                              zIndex: 1,
+                            }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                          />
+                        )}
+                      </div>
+                      <span style={{ 
+                        fontSize: 'clamp(9.5px, 2.5vw, 11.5px)', 
+                        color: isActive ? '#60a5fa' : 'var(--text-dim)', 
+                        textAlign: 'center', 
+                        lineHeight: 1.25,
+                        fontWeight: isActive ? 500 : 400
+                      }}>
+                        {step === 1 ? 'Enter your details' : step === 2 ? 'Select subjects' : 'Review & confirm'}
+                      </span>
+                    </button>
 
                     {isNotLast && (
-                      <div style={{ position: 'relative', flex: 1, height: '2px', margin: '0 12px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '999px', overflow: 'hidden' }}>
+                      <div style={{ position: 'relative', flex: 1, height: '2px', margin: 'clamp(18px, 5vw, 20px) 4px 0 4px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '999px', overflow: 'hidden' }}>
                         <motion.div
                           style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, #2563eb, #60a5fa)', transformOrigin: 'left' }}
                           initial={{ scaleX: 0 }}
@@ -1149,19 +1159,6 @@ export default function App() {
                   <span>Admins will DM your Discord username to confirm paper components.</span>
                 </div>
               )}
-
-              <div className="form-discord-link-badge" style={{ marginTop: '6px' }}>
-                <span>Official Discord Server:</span>
-                <a
-                  href={DISCORD_INVITE_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}
-                  title="Join Cambridge Discord Server"
-                >
-                  <span>Join Server ↗</span>
-                </a>
-              </div>
             </div>
 
                 <div style={{ marginTop: '20px' }}>
@@ -1813,54 +1810,58 @@ export default function App() {
       {/* Cambridge Carousel Testimonials dot pagination section */}
       <CambridgeCarouselTestimonials />
 
-      {/* Legal Footer */}
-      <footer role="contentinfo">
-        <p className="legal-text">
-          Opening a{' '}
-          <a
-            href="#cambridge"
-            className="legal-link"
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveModal('story');
-            }}
-          >
-            cambridge.edu
-          </a>{' '}
-          account signals that you accept our{' '}
-          <a
-            href="#privacy-notice"
-            className="legal-link"
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveModal('privacy');
-            }}
-          >
-            Privacy Notice
-          </a>
-          ,{' '}
-          <a
-            href="#service-contract"
-            className="legal-link"
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveModal('terms');
-            }}
-          >
-            Service Contract
-          </a>
-          , and our official{' '}
-          <a
-            href={DISCORD_INVITE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="legal-link"
-            style={{ color: '#818cf8', fontWeight: 500 }}
-          >
-            Discord Server ↗
-          </a>
-          .
-        </p>
+      {/* Site Footer */}
+      <footer role="contentinfo" className="site-footer">
+        <div className="site-footer__content">
+          <div className="site-footer__links">
+            <a
+              href="#about"
+              className="site-footer__link"
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveModal('story');
+              }}
+            >
+              About Us
+            </a>
+            <a
+              href="#terms"
+              className="site-footer__link"
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveModal('terms');
+              }}
+            >
+              Terms of Service
+            </a>
+            <a
+              href="#privacy"
+              className="site-footer__link"
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveModal('privacy');
+              }}
+            >
+              Privacy Policy
+            </a>
+            <a
+              href={DISCORD_INVITE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="site-footer__link site-footer__link--highlight"
+            >
+              Discord Community ↗
+            </a>
+          </div>
+          <div className="site-footer__bottom">
+            <p className="site-footer__copyright">
+              &copy; {new Date().getFullYear()} Cambridge Nightmare Support.
+            </p>
+            <p className="site-footer__disclaimer">
+              Not affiliated with, endorsed, or approved by Cambridge Assessment International Education.
+            </p>
+          </div>
+        </div>
       </footer>
 
       {/* Admin Candidate Registry Modal */}
