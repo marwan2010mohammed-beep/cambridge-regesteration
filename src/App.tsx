@@ -10,6 +10,7 @@ import { dispatchEmailConfirmation } from './utils/emailService';
 import { UiverseLoader } from './components/UiverseLoader';
 import { UiverseNavTabs } from './components/UiverseNavTabs';
 import { DiscordLightButton } from './components/DiscordLightButton';
+import { FAQSection } from './components/FAQSection';
 import { MessageSquare, Mail, ShieldAlert, CheckCircle2, Copy, Check, BookOpen, Search, X, Plus, Layers, ExternalLink, ArrowUpRight, Radio, Users, Calendar, AlertTriangle, Clock, FileText, Download, FileCheck, ShieldCheck, Bot, Sparkles } from 'lucide-react';
 
 const AdminRegistryModal = lazy(() => import('./components/AdminRegistryModal'));
@@ -229,28 +230,8 @@ export default function App() {
     .filter((s) => s.selected)
     .map((s) => ({ code: s.code, name: s.name, tier: s.tier }));
 
-  const handleEnrollmentSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setEmailTouched(true);
-    setDiscordTouched(true);
-
-    if (!emailValidation.isValid) {
-      setFeedbackMessage(emailValidation.error || 'Please enter a valid candidate email address.');
-      setActiveModal('error');
-      return;
-    }
-    if (!discordValidation.isValid) {
-      setFeedbackMessage(discordValidation.error || 'Please enter a valid Discord handle (e.g. @username).');
-      setActiveModal('error');
-      return;
-    }
-    if (selectedSubjectsList.length === 0) {
-      setFeedbackMessage('Please select at least 1 Cambridge IGCSE paper component from the search bar or catalog to enroll.');
-      setActiveModal('error');
-      return;
-    }
-
-    const targetEmail = emailValidation.normalized || email.trim().toLowerCase();
+  const executeSubmission = (finalEmail: string, bypassTypoWarning: boolean = false) => {
+    const targetEmail = finalEmail.trim().toLowerCase();
     const targetDiscord = discordValidation.normalized || (discord.trim().startsWith('@') ? discord.trim() : `@${discord.trim()}`);
 
     // Check if duplicate enrollment exists
@@ -273,8 +254,8 @@ export default function App() {
 
     const newRecord: CandidateEnrollment = {
       id: `CIE-${Math.floor(1000 + Math.random() * 9000)}`,
-      email: emailValidation.normalized || email.trim(),
-      discord: discordValidation.normalized || (discord.trim().startsWith('@') ? discord.trim() : `@${discord.trim()}`),
+      email: targetEmail,
+      discord: targetDiscord,
       candidateName: candidateName.trim() || undefined,
       centerNumber: centerNumber.trim() || undefined,
       subjects: selected.map((s) => ({
@@ -327,13 +308,44 @@ export default function App() {
       setInlineSubjectSearch('');
       setIsInlineDropdownOpen(false);
       setSubjects((prev) =>
-        prev.map((s) => ({
-          ...s,
+        prev.map((sub) => ({
+          ...sub,
           selected: false,
-          selectedPapers: [...s.papers],
+          selectedPapers: [],
         }))
       );
-    }, 750);
+      setWizardStep(1);
+    }, 1200);
+  };
+
+  const handleEnrollmentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailTouched(true);
+    setDiscordTouched(true);
+
+    if (!emailValidation.isValid) {
+      setFeedbackMessage(emailValidation.error || 'Please enter a valid candidate email address.');
+      setActiveModal('error');
+      return;
+    }
+    if (!discordValidation.isValid) {
+      setFeedbackMessage(discordValidation.error || 'Please enter a valid Discord handle (e.g. @username).');
+      setActiveModal('error');
+      return;
+    }
+    if (selectedSubjectsList.length === 0) {
+      setFeedbackMessage('Please select at least 1 Cambridge IGCSE paper component from the search bar or catalog to enroll.');
+      setActiveModal('error');
+      return;
+    }
+
+    // Intercept if domain typo warning exists before final submission
+    if (emailValidation.warning && emailValidation.suggestion) {
+      setActiveModal('email-warning');
+      return;
+    }
+
+    executeSubmission(emailValidation.normalized || email);
   };
 
   const handleAccessClick = () => {
@@ -849,12 +861,77 @@ export default function App() {
               </div>
 
               {/* Email Live Feedback Message */}
-              {email && emailValidation.isValid && (
-                <div className="form-validation-feedback is-valid">
-                  <CheckCircle2 size={11} />
-                  <span>Valid candidate email ({emailValidation.normalized})</span>
+              {email && emailValidation.isValid && !emailValidation.warning && (
+                <div className="form-validation-feedback is-valid" style={{ marginTop: '6px' }}>
+                  <CheckCircle2 size={12} color="#4ade80" />
+                  <span>
+                    Valid candidate email ({emailValidation.normalized})
+                    {emailValidation.isPopularProvider && (
+                      <span
+                        style={{
+                          marginLeft: '8px',
+                          color: '#60a5fa',
+                          fontSize: '11px',
+                          fontFamily: 'var(--font-mono)',
+                          background: 'rgba(96, 165, 250, 0.15)',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          border: '1px solid rgba(96, 165, 250, 0.3)',
+                        }}
+                      >
+                        ✓ Provider Verified
+                      </span>
+                    )}
+                  </span>
                 </div>
               )}
+
+              {email && emailValidation.isValid && emailValidation.warning && emailValidation.suggestion && (
+                <div
+                  style={{
+                    marginTop: '8px',
+                    padding: '10px 14px',
+                    background: 'rgba(234, 179, 8, 0.15)',
+                    border: '1px solid rgba(234, 179, 8, 0.45)',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#fde047', flex: '1 1 200px' }}>
+                    <AlertTriangle size={16} color="#fde047" style={{ flexShrink: 0 }} />
+                    <span style={{ fontWeight: 500 }}>{emailValidation.warning}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEmail(emailValidation.suggestion!)}
+                    style={{
+                      background: '#fde047',
+                      color: '#000000',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '6px 12px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-mono)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      minHeight: '36px',
+                      whiteSpace: 'nowrap',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                    }}
+                  >
+                    <Sparkles size={14} color="#000" />
+                    <span>Auto-Fix Email ({emailValidation.suggestion})</span>
+                  </button>
+                </div>
+              )}
+
               {(email || emailTouched) && !emailValidation.isValid && (
                 <div className="form-validation-feedback is-invalid">
                   <AlertTriangle size={11} />
@@ -1575,6 +1652,12 @@ export default function App() {
         </div>
       </div>
 
+      {/* Interactive FAQ Section */}
+      <FAQSection
+        onOpenNightmareSupport={() => setActiveModal('nightmare')}
+        onOpenSubjectCatalog={() => setActiveModal('papers')}
+      />
+
       {/* Legal Footer */}
       <footer role="contentinfo">
         <p className="legal-text">
@@ -1783,6 +1866,7 @@ export default function App() {
                 {activeModal === 'terms' && '[ EXAMINATION SERVICE CONTRACT ]'}
                 {activeModal === 'success' && '[ REGISTRATION & ENROLLMENT RECEIPT ]'}
                 {activeModal === 'error' && '[ VALIDATION REQUIRED ]'}
+                {activeModal === 'email-warning' && '[ EMAIL DOMAIN VALIDATION ]'}
               </span>
               <button
                 type="button"
@@ -1948,10 +2032,73 @@ export default function App() {
                         boxSizing: 'border-box',
                       }}
                     />
-                    {email && emailValidation.isValid && (
-                      <div className="form-validation-feedback is-valid" style={{ marginTop: '4px' }}>
-                        <CheckCircle2 size={11} />
-                        <span>Valid candidate email ({emailValidation.normalized})</span>
+                    {email && emailValidation.isValid && !emailValidation.warning && (
+                      <div className="form-validation-feedback is-valid" style={{ marginTop: '6px' }}>
+                        <CheckCircle2 size={12} color="#4ade80" />
+                        <span>
+                          Valid candidate email ({emailValidation.normalized})
+                          {emailValidation.isPopularProvider && (
+                            <span
+                              style={{
+                                marginLeft: '8px',
+                                color: '#60a5fa',
+                                fontSize: '11px',
+                                fontFamily: 'var(--font-mono)',
+                                background: 'rgba(96, 165, 250, 0.15)',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                border: '1px solid rgba(96, 165, 250, 0.3)',
+                              }}
+                            >
+                              ✓ Provider Verified
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    )}
+                    {email && emailValidation.isValid && emailValidation.warning && emailValidation.suggestion && (
+                      <div
+                        style={{
+                          marginTop: '8px',
+                          padding: '10px 14px',
+                          background: 'rgba(234, 179, 8, 0.15)',
+                          border: '1px solid rgba(234, 179, 8, 0.45)',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '10px',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#fde047', flex: '1 1 200px' }}>
+                          <AlertTriangle size={16} color="#fde047" style={{ flexShrink: 0 }} />
+                          <span style={{ fontWeight: 500 }}>{emailValidation.warning}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setEmail(emailValidation.suggestion!)}
+                          style={{
+                            background: '#fde047',
+                            color: '#000000',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '6px 12px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            fontFamily: 'var(--font-mono)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            minHeight: '36px',
+                            whiteSpace: 'nowrap',
+                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                          }}
+                        >
+                          <Sparkles size={14} color="#000" />
+                          <span>Auto-Fix Email ({emailValidation.suggestion})</span>
+                        </button>
                       </div>
                     )}
                     {(email || emailTouched) && !emailValidation.isValid && (
@@ -2226,6 +2373,94 @@ export default function App() {
                   >
                     Close
                   </UiverseButton>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Body: Email Typo Warning */}
+            {activeModal === 'email-warning' && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                  <AlertTriangle size={22} color="#fde047" />
+                  <span style={{ fontSize: '14px', color: '#fde047', fontWeight: 700, fontFamily: 'var(--font-sora)' }}>
+                    EMAIL DOMAIN TYPO WARNING
+                  </span>
+                </div>
+                <p style={{ fontSize: '13px', color: '#cbd5e1', lineHeight: 1.6, marginBottom: '20px' }}>
+                  Your email address domain (<strong>{emailValidation.domain}</strong>) appears to have a typo.
+                  <br /><br />
+                  Did you mean <strong style={{ color: '#4ade80' }}>{emailValidation.suggestion}</strong>?
+                </p>
+
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal(null)}
+                    style={{
+                      background: 'rgba(255,255,255,0.08)',
+                      border: '1px solid var(--line)',
+                      color: '#ffffff',
+                      padding: '10px 16px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontFamily: 'var(--font-mono)',
+                      cursor: 'pointer',
+                      minHeight: '44px',
+                    }}
+                  >
+                    Edit Email
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const corrected = emailValidation.suggestion!;
+                      setEmail(corrected);
+                      setActiveModal(null);
+                      setTimeout(() => {
+                        executeSubmission(corrected, true);
+                      }, 100);
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      border: '1px solid #34d399',
+                      color: '#ffffff',
+                      padding: '10px 16px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      minHeight: '44px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <Sparkles size={14} color="#fff" />
+                    <span>Auto-Fix & Submit</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveModal(null);
+                      setTimeout(() => {
+                        executeSubmission(email, true);
+                      }, 100);
+                    }}
+                    style={{
+                      background: 'rgba(245, 158, 11, 0.2)',
+                      border: '1px solid rgba(245, 158, 11, 0.4)',
+                      color: '#fde047',
+                      padding: '10px 16px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontFamily: 'var(--font-mono)',
+                      cursor: 'pointer',
+                      minHeight: '44px',
+                    }}
+                  >
+                    Submit as {email}
+                  </button>
                 </div>
               </div>
             )}
