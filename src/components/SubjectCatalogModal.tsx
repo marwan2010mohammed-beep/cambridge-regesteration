@@ -148,7 +148,7 @@ export function SubjectCatalogModal({
           </div>
 
           {/* Tab Switcher Buttons */}
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => setActiveTab('catalog')}
@@ -157,17 +157,18 @@ export function SubjectCatalogModal({
                 color: activeTab === 'catalog' ? '#000' : 'var(--text-dim)',
                 border: '1px solid',
                 borderColor: activeTab === 'catalog' ? '#60a5fa' : 'var(--line)',
-                padding: '5px 10px',
-                fontSize: '11px',
+                padding: '8px 14px',
+                minHeight: '40px',
+                fontSize: '12px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 fontFamily: 'var(--font-mono)',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: '5px',
+                gap: '6px',
               }}
             >
-              <Layers size={13} />
+              <Layers size={14} />
               <span>Subjects & Papers ({selectedCount})</span>
             </button>
 
@@ -179,17 +180,18 @@ export function SubjectCatalogModal({
                 color: activeTab === 'timetable' ? '#000' : 'var(--text-dim)',
                 border: '1px solid',
                 borderColor: activeTab === 'timetable' ? '#60a5fa' : 'var(--line)',
-                padding: '5px 10px',
-                fontSize: '11px',
+                padding: '8px 14px',
+                minHeight: '40px',
+                fontSize: '12px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 fontFamily: 'var(--font-mono)',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: '5px',
+                gap: '6px',
               }}
             >
-              <Calendar size={13} />
+              <Calendar size={14} />
               <span>Timetable & Clashes</span>
             </button>
 
@@ -197,12 +199,17 @@ export function SubjectCatalogModal({
               type="button"
               onClick={onClose}
               style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-dim)',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid var(--line)',
+                color: '#ffffff',
                 cursor: 'pointer',
                 fontSize: '14px',
-                padding: '4px 8px',
+                padding: '8px 12px',
+                minWidth: '44px',
+                minHeight: '44px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 fontFamily: 'var(--font-mono)',
                 letterSpacing: '0.1em',
               }}

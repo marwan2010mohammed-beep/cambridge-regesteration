@@ -760,8 +760,8 @@ export default function App() {
                   style={{
                     position: 'relative',
                     zIndex: 1,
-                    width: '32px',
-                    height: '32px',
+                    width: '40px',
+                    height: '40px',
                     borderRadius: '50%',
                     background: wizardStep >= step ? '#60a5fa' : '#1e1f22',
                     border: `2px solid ${wizardStep >= step ? '#60a5fa' : 'var(--line)'}`,
@@ -772,8 +772,9 @@ export default function App() {
                     fontSize: '14px',
                     fontWeight: 700,
                     cursor: 'pointer',
-                    boxShadow: wizardStep === step ? '0 0 0 4px rgba(96, 165, 250, 0.2)' : 'none',
-                    transition: 'all 0.2s ease'
+                    boxShadow: wizardStep === step ? '0 0 0 4px rgba(96, 165, 250, 0.25)' : 'none',
+                    transition: 'all 0.2s ease',
+                    userSelect: 'none',
                   }}
                 >
                   {step === 1 && <Users size={16} />}
@@ -1042,13 +1043,13 @@ export default function App() {
                             <div style={{ fontSize: '12px', color: '#fff' }}>
                               <strong style={{ color: '#60a5fa' }}>[{sub.code}]</strong> {sub.name}
                             </div>
-                            <div style={{ fontSize: '10px', color: 'var(--text-dimmer)' }}>
+                            <div style={{ fontSize: '12px', color: 'var(--text-dimmer)' }}>
                               {sub.category} • {sub.tier}
                             </div>
                           </div>
                           <span
                             style={{
-                              fontSize: '10px',
+                              fontSize: '12px',
                               padding: '2px 6px',
                               border: '1px solid',
                               borderColor: sub.selected ? '#60a5fa' : 'var(--line)',
@@ -1065,9 +1066,9 @@ export default function App() {
                           style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '4px',
+                            gap: '8px',
                             flexWrap: 'wrap',
-                            paddingTop: '4px',
+                            paddingTop: '6px',
                             borderTop: '1px dashed rgba(255,255,255,0.06)',
                           }}
                         >
@@ -1082,8 +1083,11 @@ export default function App() {
                               color: isAll ? '#000' : 'var(--text-dim)',
                               border: '1px solid',
                               borderColor: isAll ? '#60a5fa' : 'var(--line)',
-                              fontSize: '9px',
-                              padding: '1px 5px',
+                              fontSize: '12px',
+                              padding: '6px 12px',
+                              minHeight: '36px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
                               cursor: 'pointer',
                               fontFamily: 'var(--font-mono)',
                             }}
@@ -1119,8 +1123,11 @@ export default function App() {
                                       : 'var(--text-dimmer)',
                                   border: '1px solid',
                                   borderColor: isPSelected ? 'rgba(96,165,250,0.4)' : 'rgba(255,255,255,0.08)',
-                                  fontSize: '9px',
-                                  padding: '1px 4px',
+                                  fontSize: '12px',
+                                  padding: '6px 10px',
+                                  minHeight: '36px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
                                   cursor: 'pointer',
                                   fontFamily: 'var(--font-mono)',
                                 }}
@@ -1139,7 +1146,7 @@ export default function App() {
                       padding: '6px 10px',
                       background: 'rgba(255,255,255,0.03)',
                       textAlign: 'center',
-                      fontSize: '10px',
+                      fontSize: '12px',
                       color: 'var(--text-dim)',
                       cursor: 'pointer',
                       borderTop: '1px solid rgba(255,255,255,0.08)',
@@ -1179,7 +1186,7 @@ export default function App() {
                           <span
                             onClick={() => setActiveModal('papers')}
                             style={{
-                              fontSize: '9px',
+                              fontSize: '12px',
                               background: isAll ? 'rgba(255,255,255,0.1)' : 'rgba(163,230,53,0.15)',
                               color: isAll ? 'var(--text-dim)' : '#a3e635',
                               border: '1px solid',
@@ -1288,7 +1295,7 @@ export default function App() {
                   alignItems: 'center',
                   flexWrap: 'wrap',
                   gap: '8px',
-                  fontSize: '11px',
+                  fontSize: '12px',
                   fontFamily: 'var(--font-mono)',
                 }}
               >
@@ -1370,7 +1377,7 @@ export default function App() {
               >
                 <span
                   style={{
-                    fontSize: '10px',
+                    fontSize: '12px',
                     letterSpacing: '0.12em',
                     textTransform: 'uppercase',
                     color: 'var(--text-dim)',
@@ -1384,7 +1391,7 @@ export default function App() {
                 </span>
                 <span
                   style={{
-                    fontSize: '10px',
+                    fontSize: '12px',
                     color: isFormValid ? '#4ade80' : 'var(--text-dimmer)',
                     fontWeight: 700,
                   }}

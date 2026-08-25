@@ -519,7 +519,7 @@ export function AdminRegistryModal({
             {currentUser && (
               <span
                 style={{
-                  fontSize: '10px',
+                  fontSize: '12px',
                   background: 'rgba(163, 230, 53, 0.18)',
                   border: '1px solid rgba(163, 230, 53, 0.4)',
                   color: '#a3e635',
@@ -762,12 +762,12 @@ export function AdminRegistryModal({
                 gap: '8px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#ffffff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#ffffff' }}>
                 <ShieldCheck size={15} color="#a3e635" />
                 <span>
                   LOGGED IN AS: <strong style={{ color: '#a3e635' }}>{currentUser}</strong> ({currentAdminProfile?.role || 'Admin'})
                 </span>
-                <span style={{ fontSize: '10px', background: 'rgba(163,230,53,0.2)', color: '#a3e635', padding: '1px 5px' }}>
+                <span style={{ fontSize: '12px', background: 'rgba(163,230,53,0.2)', color: '#a3e635', padding: '1px 5px' }}>
                   {currentAdminProfile?.badge || 'VERIFIED'}
                 </span>
               </div>
@@ -780,7 +780,7 @@ export function AdminRegistryModal({
                   border: '1px solid var(--line)',
                   color: 'var(--text-dim)',
                   padding: '4px 8px',
-                  fontSize: '10px',
+                  fontSize: '12px',
                   fontFamily: 'var(--font-mono)',
                   cursor: 'pointer',
                   display: 'flex',
@@ -830,7 +830,7 @@ export function AdminRegistryModal({
                       background: '#fde047',
                       color: '#000',
                       padding: '1px 5px',
-                      fontSize: '9px',
+                      fontSize: '12px',
                       fontWeight: 700,
                     }}
                   >
@@ -890,7 +890,7 @@ export function AdminRegistryModal({
                       background: 'rgba(74, 222, 128, 0.2)',
                       color: '#4ade80',
                       padding: '1px 5px',
-                      fontSize: '9px',
+                      fontSize: '12px',
                       border: '1px solid rgba(74, 222, 128, 0.4)',
                     }}
                   >
@@ -902,7 +902,7 @@ export function AdminRegistryModal({
                       background: 'rgba(239, 68, 68, 0.2)',
                       color: '#f87171',
                       padding: '1px 5px',
-                      fontSize: '9px',
+                      fontSize: '12px',
                     }}
                   >
                     PAUSED
@@ -1146,8 +1146,9 @@ export function AdminRegistryModal({
                                 : entry.status === 'DM Sent'
                                 ? '#60a5fa'
                                 : '#fde047',
-                            fontSize: '10px',
-                            padding: '3px 6px',
+                            fontSize: '12px',
+                            padding: '6px 10px',
+                            minHeight: '38px',
                             fontFamily: 'var(--font-mono)',
                             letterSpacing: '0.08em',
                             cursor: 'pointer',
@@ -1164,14 +1165,15 @@ export function AdminRegistryModal({
                           type="button"
                           onClick={(e) => handleQuickCopyDM(entry, e)}
                           style={{
-                            display: 'flex',
+                            display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '4px',
+                            gap: '6px',
                             background: copiedDmId === entry.id ? 'rgba(74, 222, 128, 0.2)' : 'rgba(88, 101, 242, 0.18)',
                             border: `1px solid ${copiedDmId === entry.id ? 'rgba(74, 222, 128, 0.5)' : 'rgba(88, 101, 242, 0.45)'}`,
                             color: copiedDmId === entry.id ? '#a3e635' : '#c7d2fe',
-                            fontSize: '10px',
-                            padding: '3px 7px',
+                            fontSize: '12px',
+                            padding: '6px 12px',
+                            minHeight: '38px',
                             fontFamily: 'var(--font-mono)',
                             cursor: 'pointer',
                             transition: 'all 0.2s ease',
@@ -1180,12 +1182,12 @@ export function AdminRegistryModal({
                         >
                           {copiedDmId === entry.id ? (
                             <>
-                              <Check size={11} color="#a3e635" />
+                              <Check size={13} color="#a3e635" />
                               <span style={{ fontWeight: 700 }}>DM COPIED!</span>
                             </>
                           ) : (
                             <>
-                              <MessageSquare size={11} color="#5865F2" />
+                              <MessageSquare size={13} color="#5865F2" />
                               <span>COPY DM</span>
                             </>
                           )}
@@ -1196,20 +1198,21 @@ export function AdminRegistryModal({
                           type="button"
                           onClick={(e) => handleOpenDmModal(entry, e)}
                           style={{
-                            display: 'flex',
+                            display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '4px',
+                            gap: '6px',
                             background: 'rgba(255,255,255,0.06)',
                             border: '1px solid var(--line)',
                             color: '#ffffff',
-                            fontSize: '10px',
-                            padding: '3px 6px',
+                            fontSize: '12px',
+                            padding: '6px 12px',
+                            minHeight: '38px',
                             fontFamily: 'var(--font-mono)',
                             cursor: 'pointer',
                           }}
                           title="Preview, customize, and generate Discord DM message variations for this candidate"
                         >
-                          <Edit3 size={11} />
+                          <Edit3 size={13} />
                           <span>PREVIEW DM</span>
                         </button>
 
@@ -1220,20 +1223,21 @@ export function AdminRegistryModal({
                             generateStatementOfEntryPDF(entry, subjects);
                           }}
                           style={{
-                            display: 'flex',
+                            display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '4px',
+                            gap: '6px',
                             background: 'rgba(59, 130, 246, 0.15)',
                             border: '1px solid rgba(59, 130, 246, 0.4)',
                             color: '#60a5fa',
-                            fontSize: '10px',
-                            padding: '3px 6px',
+                            fontSize: '12px',
+                            padding: '6px 12px',
+                            minHeight: '38px',
                             fontFamily: 'var(--font-mono)',
                             cursor: 'pointer',
                           }}
                           title="Generate & download official Cambridge Statement of Entry PDF for this candidate"
                         >
-                          <FileText size={11} />
+                          <FileText size={13} />
                           <span>PDF SOE</span>
                         </button>
 
@@ -1241,15 +1245,20 @@ export function AdminRegistryModal({
                           type="button"
                           onClick={() => onDeleteRecord(entry.id)}
                           style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: 'var(--text-dimmer)',
+                            background: 'rgba(239, 68, 68, 0.12)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            color: '#f87171',
                             cursor: 'pointer',
-                            padding: '2px 4px',
+                            padding: '6px 10px',
+                            minWidth: '38px',
+                            minHeight: '38px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                           }}
                           title="Remove candidate record"
                         >
-                          <Trash2 size={12} />
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </div>
@@ -1292,7 +1301,7 @@ export function AdminRegistryModal({
                             background: 'rgba(255,255,255,0.06)',
                             border: '1px solid var(--line)',
                             color: '#ffffff',
-                            fontSize: '10px',
+                            fontSize: '12px',
                             padding: '4px 6px',
                             fontFamily: 'var(--font-mono)',
                             cursor: 'pointer',
@@ -1322,7 +1331,7 @@ export function AdminRegistryModal({
                             background: 'rgba(88, 101, 242, 0.12)',
                             border: '1px solid rgba(88, 101, 242, 0.35)',
                             color: '#c7d2fe',
-                            fontSize: '10px',
+                            fontSize: '12px',
                             padding: '4px 6px',
                             fontFamily: 'var(--font-mono)',
                             cursor: 'pointer',
@@ -1343,7 +1352,7 @@ export function AdminRegistryModal({
                             background: resendingWebhookId === entry.id ? 'rgba(234, 179, 8, 0.25)' : 'rgba(234, 179, 8, 0.1)',
                             border: '1px solid rgba(234, 179, 8, 0.4)',
                             color: '#fde047',
-                            fontSize: '10px',
+                            fontSize: '12px',
                             padding: '4px 6px',
                             fontFamily: 'var(--font-mono)',
                             cursor: 'pointer',
@@ -1355,14 +1364,14 @@ export function AdminRegistryModal({
                         </button>
                       </div>
 
-                      <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>
                         PERSONAL EMAIL: <strong style={{ color: '#ffffff' }}>{entry.email}</strong>
                       </div>
                     </div>
 
                     {/* Candidate Name / Center Info if available */}
                     {(entry.candidateName || entry.centerNumber) && (
-                      <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>
                         {entry.candidateName && <span>NAME: <strong style={{ color: '#fff' }}>{entry.candidateName}</strong></span>}
                         {entry.candidateName && entry.centerNumber && <span> • </span>}
                         {entry.centerNumber && <span>CENTER: <strong style={{ color: '#fff' }}>{entry.centerNumber}</strong></span>}
@@ -1371,7 +1380,7 @@ export function AdminRegistryModal({
 
                     {/* Enrolled Papers List */}
                     <div style={{ marginTop: '2px' }}>
-                      <div style={{ fontSize: '10px', color: 'var(--text-dimmer)', letterSpacing: '0.12em', marginBottom: '4px' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--text-dimmer)', letterSpacing: '0.12em', marginBottom: '4px' }}>
                         ENROLLED PAPERS ({entry.subjects.length}):
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
@@ -1389,7 +1398,7 @@ export function AdminRegistryModal({
                             <span
                               key={sub.code}
                               style={{
-                                fontSize: '10px',
+                                fontSize: '12px',
                                 background: 'rgba(255,255,255,0.06)',
                                 border: '1px solid var(--line)',
                                 padding: '3px 7px',

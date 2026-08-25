@@ -198,7 +198,7 @@ nav {
 .nav-link {
   font-family: var(--font-mono);
   font-weight: 400;
-  font-size: clamp(11px, 0.78vw, 14px);
+  font-size: clamp(12px, 0.78vw, 14px);
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: #e0f2fe;
@@ -214,7 +214,7 @@ nav {
 .cta-join {
   font-family: var(--font-mono);
   font-weight: 400;
-  font-size: clamp(11px, 0.78vw, 14px);
+  font-size: clamp(12px, 0.78vw, 14px);
   letter-spacing: 0.18em;
   text-transform: uppercase;
   text-decoration: none;
@@ -417,7 +417,7 @@ nav {
 .chip {
   font-family: var(--font-mono);
   font-weight: 500;
-  font-size: clamp(11px, 0.72vw, 14px);
+  font-size: clamp(12px, 0.72vw, 14px);
   letter-spacing: 0.2em;
   text-transform: uppercase;
   background: rgba(14, 165, 233, 0.12);
@@ -451,7 +451,7 @@ nav {
   font-family: var(--font-mono);
   font-weight: 300;
   text-transform: uppercase;
-  font-size: clamp(11px, 0.94vw, 17px);
+  font-size: clamp(12px, 0.94vw, 17px);
   letter-spacing: 0.14em;
   color: var(--text-dim);
   margin-top: clamp(14px, 1.4vw, 24px);
@@ -494,7 +494,7 @@ nav {
   align-items: center;
   gap: 7px;
   font-family: var(--font-mono);
-  font-size: clamp(10px, 0.65vw, 12px);
+  font-size: clamp(12px, 0.65vw, 13px);
   letter-spacing: 0.16em;
   color: #7dd3fc;
   text-transform: uppercase;
@@ -518,7 +518,7 @@ nav {
 
 .session-timer__target-label {
   font-family: var(--font-mono);
-  font-size: clamp(9px, 0.58vw, 11px);
+  font-size: clamp(12px, 0.58vw, 13px);
   letter-spacing: 0.12em;
   color: var(--text-dimmer);
   text-transform: uppercase;
@@ -553,7 +553,7 @@ nav {
 
 .session-timer__label {
   font-family: var(--font-mono);
-  font-size: clamp(9px, 0.55vw, 11px);
+  font-size: clamp(12px, 0.55vw, 13px);
   color: #7dd3fc;
   letter-spacing: 0.18em;
   margin-top: 4px;
@@ -632,7 +632,7 @@ nav {
 
 .form-helper-text {
   font-family: var(--font-mono);
-  font-size: clamp(10px, 0.6vw, 11px);
+  font-size: clamp(12px, 0.7vw, 13px);
   color: #7dd3fc;
   letter-spacing: 0.06em;
   line-height: 1.4;
@@ -655,7 +655,7 @@ nav {
   padding: 8px 12px;
   color: #bae6fd;
   font-family: var(--font-mono);
-  font-size: clamp(10px, 0.62vw, 12px);
+  font-size: clamp(12px, 0.7vw, 13px);
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;
@@ -696,7 +696,7 @@ nav {
   box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
   color: #e0f2fe;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   padding: 3px 8px;
   border-radius: 4px;
   cursor: default;
@@ -779,7 +779,7 @@ nav {
 }
 
 .nav-admin-badge-count {
-  font-size: 10px;
+  font-size: 12px;
   background: rgba(255, 255, 255, 0.18);
   color: #ffffff;
   padding: 1px 5px;
@@ -994,12 +994,12 @@ nav {
 
 .btn-wrapper--xs {
   --rad: 18px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .btn-wrapper--xs .gradient-btn {
   padding: 5px 12px;
   letter-spacing: 0.04em;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .btn-wrapper--sm {
@@ -1058,7 +1058,7 @@ nav {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.16em;
-  font-size: clamp(11px, 0.78vw, 13px);
+  font-size: clamp(12px, 0.78vw, 13px);
   padding: 12px 24px;
   border: 1.5px solid rgba(255, 255, 255, 0.4);
   border-radius: 26px;
@@ -1110,7 +1110,7 @@ nav {
   align-items: center;
   gap: 5px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   margin-top: 4px;
   line-height: 1.3;
   transition: all 0.2s ease;
@@ -1135,7 +1135,7 @@ nav {
   margin-top: 4px;
   margin-bottom: 4px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -1165,7 +1165,7 @@ nav {
   font-family: var(--font-mono);
   font-weight: 400;
   text-transform: uppercase;
-  font-size: clamp(11px, 0.74vw, 14px);
+  font-size: clamp(12px, 0.74vw, 14px);
   letter-spacing: 0.18em;
   margin-top: clamp(26px, 2.6vw, 46px);
   align-self: center;
@@ -1256,7 +1256,7 @@ footer {
   justify-content: space-between;
   width: 100%;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.14em;
   color: #818cf8;
   text-shadow: 0 0 8px rgba(88, 101, 242, 0.5);
@@ -1268,7 +1268,7 @@ footer {
   align-items: center;
   gap: 5px;
   color: #38bdf8;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .discord-side-status-dot {
@@ -1288,7 +1288,7 @@ footer {
 }
 
 .discord-side-desc {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-dim);
   line-height: 1.4;
   margin-bottom: 2px;
@@ -1452,7 +1452,7 @@ footer {
   box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
   color: #ffffff;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.08em;
   padding: 8px 10px;
   text-decoration: none;
@@ -1476,7 +1476,7 @@ footer {
   border: 1px solid rgba(56, 189, 248, 0.35);
   color: #e0f2fe;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
   padding: 8px 10px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1497,7 +1497,7 @@ footer {
   box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
   color: #ffffff;
   font-family: var(--font-mono);
-  font-size: clamp(10px, 0.72vw, 13px);
+  font-size: clamp(12px, 0.72vw, 13px);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   text-decoration: none;
@@ -1521,7 +1521,7 @@ footer {
   background: rgba(14, 165, 233, 0.1);
   border: 1px solid rgba(56, 189, 248, 0.35);
   padding: 6px 10px;
-  font-size: 11px;
+  font-size: 12px;
   color: #bae6fd;
   font-family: var(--font-mono);
   border-radius: 4px;
@@ -1615,7 +1615,7 @@ footer {
     font-size: 18px;
   }
   .session-timer__label {
-    font-size: 8px;
+    font-size: 12px;
   }
   .session-timer__divider {
     font-size: 14px;
@@ -1636,7 +1636,7 @@ footer {
     padding-bottom: 10px;
   }
   .legal-text {
-    font-size: 11px;
+    font-size: 12px;
   }
   .mobile-menu__nav {
     gap: 20px;
@@ -1830,10 +1830,10 @@ footer {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 17px;
-  height: 17px;
-  padding: 0 4px;
-  font-size: 9px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  font-size: 12px;
   font-weight: 700;
   border-radius: 99px;
   background-color: rgba(56, 189, 248, 0.18);
@@ -2076,7 +2076,7 @@ footer {
   padding: 2px 6px;
   border-radius: 4px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   color: #38bdf8;
 }
 
@@ -2177,6 +2177,172 @@ footer {
   margin-left: 2px;
   vertical-align: middle;
   animation: cursorBlink 0.9s infinite;
+}
+
+/* =========================================================================
+   Mobile Accessibility & Touch Target Optimization (WCAG 44x44px Target Rule)
+   ========================================================================= */
+@media (max-width: 768px) {
+  /* Prevent font scaling below 12px for small badges, helper text, tags & links on mobile */
+  .session-timer__badge,
+  .session-timer__target-label,
+  .session-timer__label,
+  .form-helper-text,
+  .paper-selection-summary-btn,
+  .subject-chip,
+  .nav-admin-badge-count,
+  .btn,
+  .btn-wrapper--xs,
+  .btn-wrapper--xs .gradient-btn,
+  .btn-wrapper--sm,
+  .btn-wrapper--sm .gradient-btn,
+  .form-validation-feedback,
+  .form-live-checklist,
+  .referral-link,
+  .legal-text,
+  .discord-side-badge,
+  .discord-side-status,
+  .discord-side-desc,
+  .discord-btn-primary,
+  .discord-btn-copy,
+  .nav-discord-btn,
+  .form-discord-link-badge,
+  .notification,
+  .markdown-body code {
+    font-size: 12px !important;
+  }
+
+  .nav-link,
+  .cta-join,
+  .chip,
+  .tagline {
+    font-size: max(12px, 0.75rem) !important;
+  }
+
+  /* --- Tap Target Minimum Dimensions (WCAG 44x44px minimum touch area) --- */
+  .btn,
+  .btn-wrapper,
+  .gradient-btn,
+  .discord-btn-primary,
+  .discord-btn-copy,
+  .nav-discord-btn,
+  .cta-join,
+  .floating-support-btn,
+  .paper-selection-summary-btn,
+  button[type="button"],
+  button[type="submit"] {
+    min-height: 44px !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+    box-sizing: border-box;
+  }
+
+  /* Smaller button wrappers on mobile still preserve min 40px touch area */
+  .btn-wrapper--xs,
+  .btn-wrapper--sm {
+    min-height: 40px !important;
+  }
+
+  .btn-wrapper--xs .gradient-btn,
+  .btn-wrapper--sm .gradient-btn {
+    min-height: 40px !important;
+    padding: 8px 14px !important;
+  }
+
+  /* Navigation items and header triggers */
+  .nav-link,
+  .mobile-menu__link,
+  .footer-link,
+  .nav-admin-badge-count,
+  .mobile-menu-toggle {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    padding: 10px 14px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Form Inputs, Selects & Textareas */
+  .email-field,
+  .input-field-wrapper input,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  select,
+  textarea {
+    min-height: 48px !important;
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+    font-size: 14px !important; /* Prevents unwanted iOS auto-zoom on focus */
+    box-sizing: border-box;
+  }
+
+  /* Checkboxes & Touch Container Labels */
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-width: 22px !important;
+    min-height: 22px !important;
+    margin-right: 8px;
+    cursor: pointer;
+  }
+
+  label,
+  .form-checkbox-label {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 0;
+  }
+
+  /* Subject Chips, Paper Pills & Action Tags */
+  .subject-chip {
+    min-height: 38px !important;
+    padding: 6px 12px !important;
+  }
+
+  .subject-chip-remove {
+    min-width: 32px !important;
+    min-height: 32px !important;
+    padding: 6px !important;
+    margin-left: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  /* Modal Close Buttons & Icon Triggers */
+  .modal-close-btn,
+  .close-btn,
+  .modal-close,
+  button:has(svg) {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Tap Target Spacing: Ensure adjacent buttons don't overlap or sit too tightly */
+  .button-group,
+  .nav-links,
+  .action-bar,
+  .subject-chips-list,
+  .paper-pill-grid,
+  .wizard-step-container {
+    gap: 12px !important;
+  }
+
+  /* Active Touch Feedback Animation */
+  button:active,
+  .btn-wrapper:active,
+  .nav-link:active,
+  .subject-chip:active,
+  a:active {
+    transform: scale(0.97) !important;
+    opacity: 0.92;
+    transition: transform 0.1s ease;
+  }
 }
 
 

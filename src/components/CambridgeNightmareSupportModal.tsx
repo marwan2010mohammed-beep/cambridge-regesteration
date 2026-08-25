@@ -603,20 +603,22 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
               id="toggle-fullscreen-btn"
               onClick={() => setIsFullscreen((prev) => !prev)}
               style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '6px',
-                width: '30px',
-                height: '30px',
-                display: 'flex',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: '8px',
+                width: '44px',
+                height: '44px',
+                minWidth: '44px',
+                minHeight: '44px',
+                display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: 'var(--text-dim)',
+                color: '#ffffff',
                 cursor: 'pointer',
               }}
               title={isFullscreen ? 'Exit Fullscreen' : 'Expand Fullscreen'}
             >
-              {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
 
             {/* Close Button */}
@@ -625,12 +627,14 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
               id="close-nightmare-modal-btn"
               onClick={onClose}
               style={{
-                background: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                borderRadius: '6px',
-                width: '30px',
-                height: '30px',
-                display: 'flex',
+                background: 'rgba(239, 68, 68, 0.2)',
+                border: '1px solid rgba(239, 68, 68, 0.4)',
+                borderRadius: '8px',
+                width: '44px',
+                height: '44px',
+                minWidth: '44px',
+                minHeight: '44px',
+                display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#f87171',
@@ -639,7 +643,7 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
               }}
               title="Close window"
             >
-              <X size={15} />
+              <X size={18} />
             </button>
           </div>
         </header>

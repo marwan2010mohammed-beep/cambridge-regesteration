@@ -132,12 +132,17 @@ export function BulkExportModal({
             type="button"
             onClick={onClose}
             style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-dim)',
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid var(--line)',
+              color: '#ffffff',
               cursor: 'pointer',
               fontSize: '13px',
-              padding: '4px 8px',
+              padding: '8px 12px',
+              minWidth: '44px',
+              minHeight: '44px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               fontFamily: 'var(--font-mono)',
             }}
             aria-label="Close export dialog"
