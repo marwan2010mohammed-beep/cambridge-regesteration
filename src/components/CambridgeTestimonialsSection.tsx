@@ -232,6 +232,7 @@ export function CambridgeTestimonialsSection() {
                 border: '1px solid #E4E4E7',
                 borderRadius: '8px',
                 padding: '6px 14px',
+                minHeight: '44px',
                 fontSize: '12px',
                 fontWeight: 600,
                 color: '#71717A',

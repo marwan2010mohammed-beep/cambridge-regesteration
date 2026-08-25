@@ -268,7 +268,7 @@ export function CambridgeCarouselTestimonials() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
+                  gap: '4px', // Reduced gap since buttons are larger
                 }}
                 role="tablist"
                 aria-label="Testimonial navigation"
@@ -282,17 +282,29 @@ export function CambridgeCarouselTestimonials() {
                     aria-current={activeIndex === idx ? 'step' : undefined}
                     onClick={() => setActiveIndex(idx)}
                     style={{
-                      width: '10px',
-                      height: '10px',
-                      borderRadius: '50%',
-                      background: activeIndex === idx ? '#4F46E5' : '#E4E4E7',
+                      width: '44px',
+                      height: '44px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'transparent',
                       border: 'none',
                       padding: 0,
                       cursor: 'pointer',
-                      transition: 'all 0.3s cubic-bezier(.16,1,.3,1)',
+                      WebkitTapHighlightColor: 'transparent',
                     }}
                     title={`Go to testimonial ${idx + 1}`}
-                  />
+                  >
+                    <div
+                      style={{
+                        width: '10px',
+                        height: '10px',
+                        borderRadius: '50%',
+                        background: activeIndex === idx ? '#4F46E5' : '#E4E4E7',
+                        transition: 'all 0.3s cubic-bezier(.16,1,.3,1)',
+                      }}
+                    />
+                  </button>
                 ))}
               </div>
             </div>

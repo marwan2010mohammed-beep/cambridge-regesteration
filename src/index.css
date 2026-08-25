@@ -1947,7 +1947,7 @@ footer {
 
 .tabs--vertical .tab {
   width: 100%;
-  height: 38px;
+  height: 44px;
   justify-content: space-between;
   padding: 0 16px;
   font-size: 0.85rem;
@@ -1957,7 +1957,7 @@ footer {
   position: absolute;
   left: 6px;
   width: calc(100% - 12px);
-  height: 38px;
+  height: 44px;
   background: linear-gradient(135deg, rgba(2, 132, 199, 0.95) 0%, rgba(37, 99, 235, 0.95) 100%);
   border: 1px solid rgba(56, 189, 248, 0.75);
   z-index: 1;
@@ -1980,22 +1980,22 @@ footer {
 
 .tabs--vertical .glider--pos-2 {
   top: 6px;
-  transform: translateY(42px);
+  transform: translateY(48px);
 }
 
 .tabs--vertical .glider--pos-3 {
   top: 6px;
-  transform: translateY(84px);
+  transform: translateY(96px);
 }
 
 .tabs--vertical .glider--pos-4 {
   top: 6px;
-  transform: translateY(126px);
+  transform: translateY(144px);
 }
 
 .tabs--vertical .glider--pos-5 {
   top: 6px;
-  transform: translateY(168px);
+  transform: translateY(192px);
 }
 
 @media (max-width: 1100px) {
@@ -2253,6 +2253,8 @@ footer {
   .nav-link,
   .mobile-menu__link,
   .footer-link,
+  .referral-link,
+  .legal-link,
   .nav-admin-badge-count,
   .mobile-menu-toggle {
     min-height: 44px !important;
