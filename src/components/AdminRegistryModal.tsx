@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CandidateEnrollment, ExamSubject, WebhookConfig, WebhookDispatchLog } from '../types';
-import { generateStatementOfEntryPDF } from '../utils/pdfGenerator';
 import { generateDiscordDMTemplate, DMTemplateType, DM_TEMPLATE_OPTIONS } from '../utils/discordDmGenerator';
 import {
   BarChart,
@@ -1216,7 +1215,10 @@ export function AdminRegistryModal({
 
                         <button
                           type="button"
-                          onClick={() => generateStatementOfEntryPDF(entry, subjects)}
+                          onClick={async () => {
+                            const { generateStatementOfEntryPDF } = await import('../utils/pdfGenerator');
+                            generateStatementOfEntryPDF(entry, subjects);
+                          }}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -2483,3 +2485,5 @@ export function AdminRegistryModal({
     </div>
   );
 }
+
+export default AdminRegistryModal;

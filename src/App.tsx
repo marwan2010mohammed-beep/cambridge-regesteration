@@ -1,12 +1,8 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'react';
 import { CountdownTimer } from './components/CountdownTimer';
-import { AdminRegistryModal } from './components/AdminRegistryModal';
-import { SubjectCatalogModal } from './components/SubjectCatalogModal';
 import { ALL_OCT_NOV_SUBJECTS } from './data/subjects';
 import { ExamSubject, CandidateEnrollment } from './types';
-import { ExamScheduleVisualizer } from './components/ExamScheduleVisualizer';
 import { generateTimetableSummary } from './data/examSchedule';
-import { generateStatementOfEntryPDF } from './utils/pdfGenerator';
 import { validateEmail, validateDiscordHandle } from './utils/validation';
 import { UiverseButton } from './components/UiverseButton';
 import { dispatchDiscordWebhook } from './utils/discordWebhook';
@@ -14,9 +10,12 @@ import { dispatchEmailConfirmation } from './utils/emailService';
 import { UiverseLoader } from './components/UiverseLoader';
 import { UiverseNavTabs } from './components/UiverseNavTabs';
 import { DiscordLightButton } from './components/DiscordLightButton';
-import { CambridgeNightmareSupportModal } from './components/CambridgeNightmareSupportModal';
-import confetti from 'canvas-confetti';
 import { MessageSquare, Mail, ShieldAlert, CheckCircle2, Copy, Check, BookOpen, Search, X, Plus, Layers, ExternalLink, ArrowUpRight, Radio, Users, Calendar, AlertTriangle, Clock, FileText, Download, FileCheck, ShieldCheck, Bot, Sparkles } from 'lucide-react';
+
+const AdminRegistryModal = lazy(() => import('./components/AdminRegistryModal'));
+const SubjectCatalogModal = lazy(() => import('./components/SubjectCatalogModal'));
+const ExamScheduleVisualizer = lazy(() => import('./components/ExamScheduleVisualizer'));
+const CambridgeNightmareSupportModal = lazy(() => import('./components/CambridgeNightmareSupportModal'));
 
 export const DISCORD_INVITE_URL = 'https://discord.gg/YD3hR9Sn54';
 
@@ -292,7 +291,7 @@ export default function App() {
     setProcessingLabel('Enrolling Candidate & Updating Cambridge Center Registry...');
     setActiveModal('loading');
 
-    setTimeout(() => {
+    setTimeout(async () => {
       setEnrollments((prev) => [newRecord, ...prev]);
       
       // Fire notifications asynchronously
@@ -306,6 +305,7 @@ export default function App() {
 
       // Trigger lightweight celebratory confetti effect
       try {
+        const { default: confetti } = await import('canvas-confetti');
         confetti({
           particleCount: 80,
           spread: 70,
@@ -522,8 +522,8 @@ export default function App() {
           muted
           loop
           playsInline
-          preload="auto"
-          poster="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260806_132328_5f9029c8-218f-4489-82b6-29ff2849920e.png"
+          preload="none"
+          poster="/hero-poster.webp"
         >
           <source
             src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260806_133255_956f653f-5d80-4b06-abd5-0f46c98b60fa.mp4"
@@ -1620,30 +1620,34 @@ export default function App() {
 
       {/* Admin Candidate Registry Modal */}
       {activeModal === 'admin' && (
-        <AdminRegistryModal
-          enrollments={enrollments}
-          subjects={subjects}
-          onClose={() => setActiveModal(null)}
-          onUpdateStatus={handleUpdateStatus}
-          onDeleteRecord={handleDeleteRecord}
-          onClearAll={handleClearAllRecords}
-          preApprovedRoster={preApprovedRoster}
-          onUpdatePreApprovedRoster={setPreApprovedRoster}
-        />
+        <Suspense fallback={null}>
+          <AdminRegistryModal
+            enrollments={enrollments}
+            subjects={subjects}
+            onClose={() => setActiveModal(null)}
+            onUpdateStatus={handleUpdateStatus}
+            onDeleteRecord={handleDeleteRecord}
+            onClearAll={handleClearAllRecords}
+            preApprovedRoster={preApprovedRoster}
+            onUpdatePreApprovedRoster={setPreApprovedRoster}
+          />
+        </Suspense>
       )}
 
       {/* Full Subject Catalog & Papers Selection Modal */}
       {activeModal === 'papers' && (
-        <SubjectCatalogModal
-          subjects={subjects}
-          onToggleSubject={toggleSubject}
-          onTogglePaper={togglePaper}
-          onSelectOnlyPaper={selectOnlyPaper}
-          onSelectAllPapers={selectAllPapers}
-          onSelectMultiple={handleSelectMultiple}
-          onClose={() => setActiveModal(null)}
-          initialSearch={inlineSubjectSearch}
-        />
+        <Suspense fallback={null}>
+          <SubjectCatalogModal
+            subjects={subjects}
+            onToggleSubject={toggleSubject}
+            onTogglePaper={togglePaper}
+            onSelectOnlyPaper={selectOnlyPaper}
+            onSelectAllPapers={selectAllPapers}
+            onSelectMultiple={handleSelectMultiple}
+            onClose={() => setActiveModal(null)}
+            initialSearch={inlineSubjectSearch}
+          />
+        </Suspense>
       )}
 
       {/* Full Exam Schedule & Timetable Visualizer Modal */}
@@ -1712,12 +1716,14 @@ export default function App() {
               </button>
             </div>
 
-            <ExamScheduleVisualizer
-              subjects={subjects}
-              candidateName={candidateName}
-              onClose={() => setActiveModal(null)}
-              onOpenSubjectCatalog={() => setActiveModal('papers')}
-            />
+            <Suspense fallback={null}>
+              <ExamScheduleVisualizer
+                subjects={subjects}
+                candidateName={candidateName}
+                onClose={() => setActiveModal(null)}
+                onOpenSubjectCatalog={() => setActiveModal('papers')}
+              />
+            </Suspense>
           </div>
         </div>
       )}
@@ -2395,7 +2401,8 @@ export default function App() {
                         size="sm"
                         onClick={() => {
                           setIsGeneratingPDF(true);
-                          setTimeout(() => {
+                          setTimeout(async () => {
+                            const { generateStatementOfEntryPDF } = await import('./utils/pdfGenerator');
                             generateStatementOfEntryPDF(lastEnrolledRecord, subjects);
                             setPdfDownloaded(true);
                             setIsGeneratingPDF(false);
@@ -2591,7 +2598,8 @@ export default function App() {
                               size="xs"
                               onClick={() => {
                                 setIsGeneratingPDF(true);
-                                setTimeout(() => {
+                                setTimeout(async () => {
+                                  const { generateStatementOfEntryPDF } = await import('./utils/pdfGenerator');
                                   generateStatementOfEntryPDF(matchedRecord, subjects);
                                   setPdfDownloaded(true);
                                   setIsGeneratingPDF(false);
@@ -2695,17 +2703,21 @@ export default function App() {
       )}
 
       {/* Cambridge Nightmare Support Multi-Turn Chatbot Modal */}
-      <CambridgeNightmareSupportModal
-        isOpen={activeModal === 'nightmare'}
-        onClose={() => setActiveModal(null)}
-        candidateContext={{
-          selectedSubjects: subjects.filter((s) => s.selected).map((s) => `${s.code} ${s.name} (${s.tier})`),
-          email: email || undefined,
-          discord: discord || undefined,
-          candidateName: candidateName || undefined,
-          clashesCount: timetableSummary.directClashesCount,
-        }}
-      />
+      {activeModal === 'nightmare' && (
+        <Suspense fallback={null}>
+          <CambridgeNightmareSupportModal
+            isOpen={true}
+            onClose={() => setActiveModal(null)}
+            candidateContext={{
+              selectedSubjects: subjects.filter((s) => s.selected).map((s) => `${s.code} ${s.name} (${s.tier})`),
+              email: email || undefined,
+              discord: discord || undefined,
+              candidateName: candidateName || undefined,
+              clashesCount: timetableSummary.directClashesCount,
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* Floating Cambridge Nightmare Support AI Desk Button */}
       <div

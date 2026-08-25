@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, Suspense, lazy } from 'react';
 import { ExamSubject } from '../types';
 import { Search, X, Check, BookOpen, Filter, Sparkles, CheckCircle2, RotateCcw, Layers, Calendar } from 'lucide-react';
-import { ExamScheduleVisualizer } from './ExamScheduleVisualizer';
+
+const ExamScheduleVisualizer = lazy(() => import('./ExamScheduleVisualizer'));
 
 interface SubjectCatalogModalProps {
   subjects: ExamSubject[];
@@ -214,12 +215,14 @@ export function SubjectCatalogModal({
 
         {activeTab === 'timetable' ? (
           <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
-            <ExamScheduleVisualizer
-              subjects={subjects}
-              onClose={onClose}
-              onOpenSubjectCatalog={() => setActiveTab('catalog')}
-              isEmbedded={true}
-            />
+            <Suspense fallback={null}>
+              <ExamScheduleVisualizer
+                subjects={subjects}
+                onClose={onClose}
+                onOpenSubjectCatalog={() => setActiveTab('catalog')}
+                isEmbedded={true}
+              />
+            </Suspense>
           </div>
         ) : (
           <>
@@ -781,4 +784,6 @@ export function SubjectCatalogModal({
     </div>
   );
 }
+
+export default SubjectCatalogModal;
 

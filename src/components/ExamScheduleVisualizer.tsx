@@ -4,7 +4,6 @@ import {
   generateTimetableSummary,
   generateICalendarString,
 } from '../data/examSchedule';
-import { generateStatementOfEntryPDF } from '../utils/pdfGenerator';
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -73,7 +72,7 @@ export function ExamScheduleVisualizer({
     setTimeout(() => setCopiedIcs(false), 2500);
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     const selectedSubjects = subjects.filter((s) => s.selected);
     const candidateEnrollment: CandidateEnrollment = {
       id: `CIE-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -90,6 +89,7 @@ export function ExamScheduleVisualizer({
       timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC',
       status: 'Enrolled & Verified',
     };
+    const { generateStatementOfEntryPDF } = await import('../utils/pdfGenerator');
     generateStatementOfEntryPDF(candidateEnrollment, subjects);
   };
 
@@ -1172,3 +1172,5 @@ function MonthGrid({
     </div>
   );
 }
+
+export default ExamScheduleVisualizer;

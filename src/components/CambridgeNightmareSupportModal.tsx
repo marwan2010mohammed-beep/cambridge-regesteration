@@ -1530,3 +1530,5 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
     </div>
   );
 };
+
+export default CambridgeNightmareSupportModal;
