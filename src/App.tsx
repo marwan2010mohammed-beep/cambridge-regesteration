@@ -748,57 +748,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Left-Side Floating Discord Server Badge & Hub */}
-      <aside className="discord-side-card" aria-label="Official Discord Community">
-        <div className="discord-side-badge">
-          <ShinyText text="[ IGCSE DISCORD HUB ]" color="#60a5fa" shineColor="#ffffff" speed={2.5} />
-          <div className="discord-side-status">
-            <span className="discord-side-status-dot" />
-            <span>ONLINE NETWORK</span>
-          </div>
-        </div>
-        <div className="discord-side-title">
-          Cambridge Candidate Server
-        </div>
-        <p className="discord-side-desc">
-          Official Discord community for Oct/Nov examination series. Admins DM candidates here to verify statement of entry.
-        </p>
-
-        {/* Uiverse.io Light Button by kamehame-ha */}
-        <DiscordLightButton
-          url={DISCORD_INVITE_URL}
-          id="hero-discord-light-btn"
-          title="Click to immediately join official Cambridge IGCSE Discord Server"
-        />
-
-        <div className="discord-side-actions">
-          <UiverseButton
-            as="a"
-            href={DISCORD_INVITE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            variant="discord"
-            size="xs"
-            fullWidth
-            icon={<MessageSquare size={12} />}
-            iconRight={<ArrowUpRight size={12} />}
-            title="Open official Discord server (discord.gg/YD3hR9Sn54)"
-          >
-            Direct Invite ↗
-          </UiverseButton>
-          <UiverseButton
-            type="button"
-            onClick={handleCopyDiscordLink}
-            variant="ghost"
-            size="xs"
-            icon={copiedDiscord ? <Check size={12} color="#a3e635" /> : <Copy size={12} />}
-            title="Copy Discord invite URL to clipboard"
-          >
-            {copiedDiscord ? 'Copied' : 'Copy'}
-          </UiverseButton>
-        </div>
-      </aside>
-
       {/* Right-Aligned Hero Registration Panel */}
       <div className="hero__body" role="main">
         <div className="panel">
@@ -1797,6 +1746,57 @@ export default function App() {
           </div>
         </div>
       </div>
+
+      {/* Left-Side Floating Discord Server Badge & Hub */}
+      <aside className="discord-side-card" aria-label="Official Discord Community">
+        <div className="discord-side-badge">
+          <ShinyText text="[ IGCSE DISCORD HUB ]" color="#60a5fa" shineColor="#ffffff" speed={2.5} />
+          <div className="discord-side-status">
+            <span className="discord-side-status-dot" />
+            <span>ONLINE NETWORK</span>
+          </div>
+        </div>
+        <div className="discord-side-title">
+          Cambridge Candidate Server
+        </div>
+        <p className="discord-side-desc">
+          Official Discord community for Oct/Nov examination series. Admins DM candidates here to verify statement of entry.
+        </p>
+
+        {/* Uiverse.io Light Button by kamehame-ha */}
+        <DiscordLightButton
+          url={DISCORD_INVITE_URL}
+          id="hero-discord-light-btn"
+          title="Click to immediately join official Cambridge IGCSE Discord Server"
+        />
+
+        <div className="discord-side-actions">
+          <UiverseButton
+            as="a"
+            href={DISCORD_INVITE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="discord"
+            size="xs"
+            fullWidth
+            icon={<MessageSquare size={12} />}
+            iconRight={<ArrowUpRight size={12} />}
+            title="Open official Discord server (discord.gg/YD3hR9Sn54)"
+          >
+            Direct Invite ↗
+          </UiverseButton>
+          <UiverseButton
+            type="button"
+            onClick={handleCopyDiscordLink}
+            variant="ghost"
+            size="xs"
+            icon={copiedDiscord ? <Check size={12} color="#a3e635" /> : <Copy size={12} />}
+            title="Copy Discord invite URL to clipboard"
+          >
+            {copiedDiscord ? 'Copied' : 'Copy'}
+          </UiverseButton>
+        </div>
+      </aside>
 
       {/* Interactive FAQ Section */}
       <FAQSection

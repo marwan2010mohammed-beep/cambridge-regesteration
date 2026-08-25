@@ -1287,8 +1287,7 @@ nav {
     position: static;
     width: 100%;
     max-width: 520px;
-    margin: 20px auto 0;
-    order: 10;
+    margin: 40px auto 20px;
   }
 }
 
