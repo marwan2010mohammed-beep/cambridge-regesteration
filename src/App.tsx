@@ -14,6 +14,7 @@ import { DiscordLightButton } from './components/DiscordLightButton';
 import { FAQSection } from './components/FAQSection';
 import { CambridgeTestimonialsSection } from './components/CambridgeTestimonialsSection';
 import { RolodexText } from './components/RolodexText';
+import { ShinyText } from './components/ShinyText';
 import { MessageSquare, Mail, ShieldAlert, CheckCircle2, Copy, Check, BookOpen, Search, X, Plus, Layers, ExternalLink, ArrowUpRight, Radio, Users, Calendar, AlertTriangle, Clock, FileText, Download, FileCheck, ShieldCheck, Bot, Sparkles } from 'lucide-react';
 
 const AdminRegistryModal = lazy(() => import('./components/AdminRegistryModal'));
@@ -748,7 +749,7 @@ export default function App() {
       {/* Left-Side Floating Discord Server Badge & Hub */}
       <aside className="discord-side-card" aria-label="Official Discord Community">
         <div className="discord-side-badge">
-          <span>[ IGCSE DISCORD HUB ]</span>
+          <ShinyText text="[ IGCSE DISCORD HUB ]" color="#60a5fa" shineColor="#ffffff" speed={2.5} />
           <div className="discord-side-status">
             <span className="discord-side-status-dot" />
             <span>ONLINE NETWORK</span>
@@ -800,7 +801,7 @@ export default function App() {
       <div className="hero__body" role="main">
         <div className="panel">
           <div className="chip" id="registration-chip">
-            [ Oct / Nov Registration ]
+            <ShinyText text="[ Oct / Nov Registration ]" color="#94a3b8" shineColor="#60a5fa" speed={3} />
           </div>
 
           <h1 className="hero-h1" id="main-heading">
