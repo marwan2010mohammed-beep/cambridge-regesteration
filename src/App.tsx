@@ -13,6 +13,7 @@ import { UiverseNavTabs } from './components/UiverseNavTabs';
 import { DiscordLightButton } from './components/DiscordLightButton';
 import { FAQSection } from './components/FAQSection';
 import { CambridgeTestimonialsSection } from './components/CambridgeTestimonialsSection';
+import { RolodexText } from './components/RolodexText';
 import { MessageSquare, Mail, ShieldAlert, CheckCircle2, Copy, Check, BookOpen, Search, X, Plus, Layers, ExternalLink, ArrowUpRight, Radio, Users, Calendar, AlertTriangle, Clock, FileText, Download, FileCheck, ShieldCheck, Bot, Sparkles } from 'lucide-react';
 
 const AdminRegistryModal = lazy(() => import('./components/AdminRegistryModal'));
@@ -807,7 +808,12 @@ export default function App() {
           </h1>
 
           <p className="tagline">
-            Your official entry to the Oct/Nov series examinations.
+            We Deliver{' '}
+            <RolodexText
+              words={['Solutions', 'Answers', 'Clarity', 'Support', 'Confidence']}
+              textClassName="text-blue-400 font-semibold"
+            />{' '}
+            for your Oct/Nov examinations.
           </p>
 
           <CountdownTimer onOpenSchedule={() => setActiveModal('schedule')} />
