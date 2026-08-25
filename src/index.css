@@ -2405,6 +2405,52 @@ footer {
   z-index: 1;
 }
 
+/* Vertical Testimonial Drift Animations */
+@keyframes vertical-drift-up {
+  0% {
+    transform: translateY(0%);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes vertical-drift-down {
+  0% {
+    transform: translateY(-50%);
+  }
+  100% {
+    transform: translateY(0%);
+  }
+}
+
+.testimonial-lane-up {
+  animation: vertical-drift-up var(--drift-duration, 35s) linear infinite;
+}
+
+.testimonial-lane-down {
+  animation: vertical-drift-down var(--drift-duration, 38s) linear infinite;
+}
+
+.testimonials-grid-wrapper:hover .testimonial-lane-up,
+.testimonials-grid-wrapper:hover .testimonial-lane-down {
+  animation-play-state: paused !important;
+}
+
+.vertical-fade-mask {
+  mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .testimonial-lane-up,
+  .testimonial-lane-down {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+
 
 
 

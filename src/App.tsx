@@ -12,6 +12,7 @@ import { UiverseLoader } from './components/UiverseLoader';
 import { UiverseNavTabs } from './components/UiverseNavTabs';
 import { DiscordLightButton } from './components/DiscordLightButton';
 import { FAQSection } from './components/FAQSection';
+import { CambridgeTestimonialsSection } from './components/CambridgeTestimonialsSection';
 import { MessageSquare, Mail, ShieldAlert, CheckCircle2, Copy, Check, BookOpen, Search, X, Plus, Layers, ExternalLink, ArrowUpRight, Radio, Users, Calendar, AlertTriangle, Clock, FileText, Download, FileCheck, ShieldCheck, Bot, Sparkles } from 'lucide-react';
 
 const AdminRegistryModal = lazy(() => import('./components/AdminRegistryModal'));
@@ -1792,6 +1793,9 @@ export default function App() {
         onOpenNightmareSupport={() => setActiveModal('nightmare')}
         onOpenSubjectCatalog={() => setActiveModal('papers')}
       />
+
+      {/* Cambridge Nightmare Testimonials Vertical Drift Section */}
+      <CambridgeTestimonialsSection />
 
       {/* Legal Footer */}
       <footer role="contentinfo">
