@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CandidateEnrollment, ExamSubject, WebhookConfig, WebhookDispatchLog } from '../types';
 import { generateDiscordDMTemplate, DMTemplateType, DM_TEMPLATE_OPTIONS } from '../utils/discordDmGenerator';
+import { ChartAreaInteractive } from './ChartAreaInteractive';
 import {
   BarChart,
   Bar,
@@ -1435,7 +1436,9 @@ export function AdminRegistryModal({
 
         {/* TAB ANALYTICS: SUBJECT DISTRIBUTION */}
         {activeAdminTab === 'analytics' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minHeight: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '4px' }}>
+            <ChartAreaInteractive />
+
             <div
               style={{
                 background: 'rgba(234, 179, 8, 0.08)',
