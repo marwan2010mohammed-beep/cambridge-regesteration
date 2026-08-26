@@ -13,7 +13,10 @@ const __dirname = path.dirname(__filename);
 
 function getEffectiveApiKey(): string {
   if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length > 0) {
-    return process.env.GEMINI_API_KEY.trim();
+    const key = process.env.GEMINI_API_KEY.trim().replace(/^["']|["']$/g, '');
+    if (key && key !== 'MY_GEMINI_API_KEY') {
+      return key;
+    }
   }
   try {
     const envPath = path.join(process.cwd(), '.env');
@@ -21,7 +24,10 @@ function getEffectiveApiKey(): string {
       const content = fs.readFileSync(envPath, 'utf8');
       const match = content.match(/GEMINI_API_KEY=([^\r\n]+)/);
       if (match && match[1]) {
-        return match[1].trim();
+        const val = match[1].trim().replace(/^["']|["']$/g, '');
+        if (val && val !== 'MY_GEMINI_API_KEY') {
+          return val;
+        }
       }
     }
   } catch (err) {
@@ -53,7 +59,7 @@ function getGenAI(): GoogleGenAI {
 const CAMBRIDGE_SYSTEM_INSTRUCTION = `You are "Cambridge Nightmare Support", the official, empathetic, and hyper-intelligent AI academic crisis counselor, master exam strategist, and syllabus survival advisor for candidates taking Cambridge Assessment International Education (CIE / CAIE) examinations, including IGCSE, O Level, and International AS & A Level.
 
 ### 🌟 Core Persona & Communication Philosophy
-1. **Warm, Empathetic & Grounding**: Speak naturally and supportive like a world-class senior Cambridge examiner and mentor. You understand the intense pressure candidates face during exam series.
+1. **Warm, Empathetic & Grounding**: Speak naturally and supportively like a world-class senior Cambridge examiner and mentor. You understand the intense pressure candidates face during exam series.
 2. **Actionable & Authoritative**: Provide concrete, syllabus-exact explanations, mark-scheme criteria, formula derivations, and examiner report insights.
 3. **Dynamic Conversational Range**:
    - **Cambridge Academic & Subject Queries**: Deliver clear, numbered step-by-step solutions, mark allocations (M1, A1, B1, C1), precision rules, and pitfalls.
@@ -101,173 +107,11 @@ When a user provides image or file attachments:
    - **Timetable Clashes & Full Centre Supervision (FCS)**: Candidates sitting two exams in the same session are placed in supervised isolation between papers with zero access to electronic devices.
    - **Special Consideration (Form 7)**: Candidates facing severe illness, bereavement, or sudden trauma on exam day should have their Centre Exam Officer submit Cambridge Special Consideration Form 7 within 7 days of the exam.`;
 
-function decodeBase64Utf8(base64: string): string {
-  try {
-    return Buffer.from(base64, 'base64').toString('utf-8');
-  } catch {
-    return '';
-  }
-}
-
-function processAttachmentForPrompt(att: any): { isImage: boolean; isTextFile: boolean; textContent?: string; dataUrl: string; name: string } {
-  const name = att.name || 'attachment';
-  const dataUrl = att.dataUrl || '';
-  const mimeType = att.mimeType || '';
-  const isImage = att.type === 'image' || mimeType.startsWith('image/');
-  
-  let isTextFile = false;
-  let textContent: string | undefined = undefined;
-
-  if (!isImage && dataUrl) {
-    const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-    if (match) {
-      const detectedMime = match[1];
-      const base64Data = match[2];
-      if (
-        detectedMime.startsWith('text/') ||
-        detectedMime.includes('json') ||
-        detectedMime.includes('javascript') ||
-        detectedMime.includes('python') ||
-        detectedMime.includes('typescript') ||
-        name.endsWith('.txt') ||
-        name.endsWith('.md') ||
-        name.endsWith('.py') ||
-        name.endsWith('.json') ||
-        name.endsWith('.csv')
-      ) {
-        isTextFile = true;
-        textContent = decodeBase64Utf8(base64Data);
-      }
-    }
-  }
-
-  return { isImage, isTextFile, textContent, dataUrl, name };
-}
-
-async function callVoidAiChat(
-  apiKey: string,
-  systemPrompt: string,
-  history: Array<{ role: 'user' | 'model'; text: string; attachments?: any[] }>,
-  currentPrompt: string,
-  attachments?: any[]
-): Promise<string> {
-  const hasImages = Array.isArray(attachments) && attachments.some((a) => a && (a.type === 'image' || a.mimeType?.startsWith('image/')));
-  
-  // Prioritize multimodal/vision models when images are present
-  const models = hasImages
-    ? ['gpt-4o', 'gemini-2.5-flash', 'gpt-4o-mini', 'gemini-3.5-flash-lite', 'deepseek-v3.2']
-    : ['gpt-4o-mini', 'gpt-4o', 'qwen3.8-27b:free', 'deepseek-v3.2', 'gemini-3.5-flash-lite'];
-  
-  // Format messages into OpenAI format
-  const messages: any[] = [
-    { role: 'system', content: systemPrompt }
-  ];
-
-  // Append history
-  if (Array.isArray(history) && history.length > 0) {
-    for (const h of history) {
-      if (!h || !h.text) continue;
-      const role = h.role === 'model' ? 'assistant' : 'user';
-      if (role === 'assistant') {
-        messages.push({ role: 'assistant', content: h.text });
-      } else {
-        const userContent: any[] = [{ type: 'text', text: h.text }];
-        if (Array.isArray(h.attachments) && h.attachments.length > 0) {
-          for (const att of h.attachments) {
-            const parsed = processAttachmentForPrompt(att);
-            if (parsed.isImage && parsed.dataUrl) {
-              userContent.push({
-                type: 'image_url',
-                image_url: { url: parsed.dataUrl }
-              });
-            } else if (parsed.isTextFile && parsed.textContent) {
-              userContent.push({
-                type: 'text',
-                text: `\n[Attached File: ${parsed.name}]\n${parsed.textContent}\n`
-              });
-            }
-          }
-        }
-        messages.push({
-          role: 'user',
-          content: userContent.length === 1 ? h.text : userContent
-        });
-      }
-    }
-  }
-
-  // Process current turn attachments
-  let finalPrompt = currentPrompt;
-  const currentUserContent: any[] = [];
-  let attachedTextFiles = '';
-
-  if (Array.isArray(attachments) && attachments.length > 0) {
-    for (const att of attachments) {
-      const parsed = processAttachmentForPrompt(att);
-      if (parsed.isImage && parsed.dataUrl) {
-        currentUserContent.push({
-          type: 'image_url',
-          image_url: { url: parsed.dataUrl }
-        });
-      } else if (parsed.isTextFile && parsed.textContent) {
-        attachedTextFiles += `\n[Attached File Content: ${parsed.name}]\n${parsed.textContent}\n`;
-      }
-    }
-  }
-
-  if (!finalPrompt.trim() && (currentUserContent.length > 0 || attachedTextFiles)) {
-    finalPrompt = 'Please carefully inspect this attached Cambridge exam question / student working / syllabus material. Identify the subject and component, transcribe all given numbers and formulas, provide a step-by-step worked solution with M1/A1 marks, diagnose any student errors with Error Carried Forward (ECF), and outline common examiner report pitfalls.';
-  }
-
-  if (attachedTextFiles) {
-    finalPrompt = `${finalPrompt}\n\n${attachedTextFiles}`;
-  }
-
-  currentUserContent.unshift({ type: 'text', text: finalPrompt });
-
-  messages.push({
-    role: 'user',
-    content: currentUserContent.length === 1 ? finalPrompt : currentUserContent
-  });
-
-  for (const model of models) {
-    try {
-      const res = await fetch('https://api.voidai.app/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages,
-          temperature: 0.7,
-          max_tokens: 2500,
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const text = data?.choices?.[0]?.message?.content;
-        if (text && typeof text === 'string' && text.trim().length > 0) {
-          return text.trim();
-        }
-      } else {
-        const errText = await res.text();
-        console.warn(`VoidAI model ${model} returned status ${res.status}:`, errText.slice(0, 150));
-      }
-    } catch (err: any) {
-      console.warn(`VoidAI model ${model} fetch exception:`, err?.message || err);
-    }
-  }
-
-  return '';
-}
-
-function generateFallbackCambridgeResponse(query: string, context?: any, attachments?: any[]): string {
-  const q = query.toLowerCase();
+export function generateFallbackCambridgeResponse(query: string, context?: any, attachments?: any[]): string {
+  const q = (query || '').trim().toLowerCase();
   const subjects = context?.selectedSubjects?.length ? context.selectedSubjects.join(', ') : 'Cambridge IGCSE & A-Levels';
 
+  // 1. Multimodal / Attachments Handling
   if (attachments && Array.isArray(attachments) && attachments.length > 0) {
     const attachmentNames = attachments.map((a) => a.name || 'study file').join(', ');
     return `### 📝 Attached Question & Multimodal Diagnostic Review: ${attachmentNames}
@@ -288,7 +132,99 @@ I have inspected your attached question/study document for **${subjects}**:
 *Would you like me to walk through the exact step-by-step arithmetic or generate an official Cambridge study sheet for this question?*`;
   }
 
-  // Panic / Cramming / Emotional Distress
+  // 2. Greetings & Casual Conversational Openers
+  if (
+    q === 'hi' ||
+    q === 'hello' ||
+    q === 'hey' ||
+    q === 'yo' ||
+    q.startsWith('hi ') ||
+    q.startsWith('hello ') ||
+    q.startsWith('hey ') ||
+    q.includes('good morning') ||
+    q.includes('good afternoon') ||
+    q.includes('good evening') ||
+    q.includes('who are you') ||
+    q.includes('who r u') ||
+    q.includes('what can you do') ||
+    q === 'start' ||
+    q === 'help'
+  ) {
+    return `### 👋 Welcome to Cambridge Nightmare Support!
+Hello! I am your dedicated Cambridge International examination strategist and academic counselor for **${subjects}**.
+
+How can I assist you right now? Here are our top focus tools:
+1. **Solve a Past Paper Problem**: Type your question or paste a screenshot, and I'll break down the mark scheme (**M1/A1**), exact formula, and examiner traps.
+2. **Paper 4 Extended Strategy**: Master the 1-minute-per-mark rule and command words (*"Explain"*, *"State"*, *"Evaluate"*).
+3. **Paper 6 (ATP) Experimental Design**: Full 6-mark planning templates (Variables, Apparatus, Procedure, Reliability, Safety).
+4. **Formula & Theory Quick-Drill**: Revise key equations for Physics (0625), Chemistry (0620), Maths (0580), or Biology (0610).
+5. **Emergency Cramming Triage**: If your exam is in 1–2 days, I'll give you the top 20% high-yield topics to pass with confidence.
+
+*Tell me which subject, paper, or question you'd like to work on!*`;
+  }
+
+  // 3. Acknowledgments, Gratitude & Transitions
+  if (
+    q === 'thanks' ||
+    q === 'thank you' ||
+    q === 'thx' ||
+    q === 'ty' ||
+    q === 'ok' ||
+    q === 'okay' ||
+    q === 'got it' ||
+    q === 'cool' ||
+    q === 'understood' ||
+    q === 'great' ||
+    q === 'awesome' ||
+    q === 'nice' ||
+    q === 'alright' ||
+    q === 'sure' ||
+    q === 'yes' ||
+    q === 'yep' ||
+    q === 'no' ||
+    q === 'bye' ||
+    q === 'goodbye'
+  ) {
+    return `### 👍 Glad to Help!
+You're making great progress. Consistent active practice is the #1 predictor of moving up whole grade boundaries in Cambridge examinations.
+
+What would you like to tackle next?
+- **Try another calculation or past paper problem** (Maths, Physics, or Chemistry)
+- **Review Paper 6 ATP graph rules & 6-mark experiments**
+- **Check official exam regulations** (Stationery, Calculators, Timetable Clashes)
+- **Review high-yield formula sheets**
+
+*Type any question, topic keyword, or paste a problem whenever you're ready!*`;
+  }
+
+  // 4. Clarification / Follow-up queries ("why", "explain more", "give example", "details")
+  if (
+    q.includes('explain more') ||
+    q.includes('tell me more') ||
+    q.includes('why') ||
+    q.includes('give me an example') ||
+    q.includes('example') ||
+    q.includes('details') ||
+    q.includes('elaborate') ||
+    q.includes('how come')
+  ) {
+    return `### 🔍 In-Depth Cambridge Academic Breakdown
+
+To master this at the highest Cambridge grade standard (**A/A***):
+
+1. **The Examiner's Marking Perspective**:
+   - Cambridge examiners look for specific **technical keywords** in structured questions. If a question asks to *"Explain"*, you must link cause and consequence (*"A causes B, leading to C"*).
+   - If an algebraic derivation is required, always state the base equation in general algebraic terms before substituting numbers to secure the **M1 (Method)** mark.
+
+2. **Step-by-Step Worked Example**:
+   - **Given Data**: Extract all numerical variables and convert immediately to standard SI units ($cm^3 \\rightarrow dm^3$, $g \\rightarrow kg$, $minutes \\rightarrow seconds$).
+   - **Formula Application**: Substitute clearly into the equation.
+   - **Rounding**: Give final numerical answers to **3 significant figures** (or 1 decimal place for angles).
+
+*Would you like me to generate a full exam-style question on this topic with mark scheme rubrics?*`;
+  }
+
+  // 5. Panic / Cramming / Emotional Distress
   if (
     q.includes('cooked') ||
     q.includes('panic') ||
@@ -300,10 +236,12 @@ I have inspected your attached question/study document for **${subjects}**:
     q.includes('cram') ||
     q.includes('1 day') ||
     q.includes('2 days') ||
-    q.includes('tomorrow')
+    q.includes('tomorrow') ||
+    q.includes('stress') ||
+    q.includes('anxiety')
   ) {
     return `### 🛑 Breathe & Ground: Your Emergency Cambridge Crisis Action Plan
-First: **Take a deep breath.** Thousands of Cambridge candidates feel this exact panic every single series. Grade thresholds are designed to reward raw marks earned, and you can recover significant percentage points right now with a high-yield triage:
+First: **Take a deep breath.** Thousands of Cambridge candidates feel this exact panic during the exam series. Grade thresholds exist to reward every raw mark you earn, and you can recover significant marks right now:
 
 ---
 
@@ -313,7 +251,7 @@ First: **Take a deep breath.** Thousands of Cambridge candidates feel this exact
    - Attempt questions topic-by-topic with the mark scheme side-by-side.
 2. **Collect Guaranteed Method & Definition Marks**:
    - Cambridge awards **M1 (Method marks)** and **B1 (Independent marks)** simply for writing the correct formula, defining key terms, or showing intermediate steps—even if your final answer is wrong (**Error Carried Forward / ECF**).
-3. **Master the Big 3 High-Yield Pillars for Your Subjects**:
+3. **Master the Big High-Yield Pillars**:
    - **Maths (0580)**: Quadratics & algebra, Trigonometry (Sine/Cosine rules), Vectors, Probability trees, Cumulative frequency.
    - **Physics (0625)**: Mechanics formulas ($F=ma, W=mg$), Thermal capacity ($Q=mc\\Delta T$), Circuits ($V=IR, P=IV$), Wave equations ($v=f\\lambda$).
    - **Chemistry (0620)**: Moles calculations ($n=\\frac{m}{M_r}$), Electrolysis products, Organic polymerisation, Cation/Anion tests.
@@ -321,7 +259,7 @@ First: **Take a deep breath.** Thousands of Cambridge candidates feel this exact
 *Which specific paper or topic is giving you the highest stress right now? Let's solve it together step-by-step.*`;
   }
 
-  // Stationery / Exam Room Regulations / Calculators
+  // 6. Stationery / Exam Room Regulations / Calculators
   if (
     q.includes('stationery') ||
     q.includes('pencil') ||
@@ -330,7 +268,8 @@ First: **Take a deep breath.** Thousands of Cambridge candidates feel this exact
     q.includes('tipp-ex') ||
     q.includes('correction') ||
     q.includes('ruler') ||
-    q.includes('allowed')
+    q.includes('allowed') ||
+    q.includes('casio')
   ) {
     return `### 📋 Official Cambridge Examination Room & Stationery Regulations
 
@@ -354,99 +293,128 @@ Here are the strict Cambridge International regulations for what you can and can
 *Have any questions regarding specific calculator models or special consideration?*`;
   }
 
-  // Timetable Clashes & Full Centre Supervision (FCS)
+  // 7. Timetable Clashes & Full Centre Supervision (FCS)
   if (q.includes('clash') || q.includes('timetable') || q.includes('key time') || q.includes('supervision') || q.includes('quarantine') || q.includes('fcs')) {
     return `### 🕒 Cambridge Timetable Clash & Full Centre Supervision (FCS) Protocol
 If you are entered for two papers scheduled in the same morning or afternoon session:
 
 1. **Full Centre Supervision (FCS)**:
    - Your examination centre officer will arrange for you to sit one exam first, followed immediately by supervised isolation/quarantine before sitting the second exam.
-   - **Strict Isolation Rules**: You are prohibited from accessing internet-enabled devices, phones, smartwatches, or speaking with unsupervised candidates during this hold. You may bring revision notes and food/water.
+   - **Strict Isolation Rules**: You are prohibited from accessing internet-enabled devices, phones, smartwatches, or speaking with unsupervised candidates during this hold. You may bring revision notes, food, and water.
 
 2. **Zone 3 / 4 Key Times**:
    - Morning Key Time is **10:00 AM local time** and Afternoon Key Time is **14:00 PM local time**.
    - You must be inside the exam hall or under supervised hold during these exact moments worldwide.`;
   }
 
-  // 0580 Mathematics
-  if (q.includes('0580') || (q.includes('math') && (q.includes('syllabus') || q.includes('vector') || q.includes('trig') || q.includes('circle')))) {
-    return `### 📐 Cambridge IGCSE Mathematics (0580) Core Strategy & Traps
+  // 8. Error Carried Forward (ECF) & Mark Scheme System
+  if (q.includes('ecf') || q.includes('error carried forward') || q.includes('mark scheme') || q.includes('m1') || q.includes('a1') || q.includes('b1')) {
+    return `### 🎯 Cambridge Marking Scheme Codes & Error Carried Forward (ECF)
+Cambridge examiners mark using a strict, structured hierarchy:
 
-#### 1. Top High-Yield Topics:
-- **Algebra & Quadratics**: Quadratic formula $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$, expanding, simultaneous linear and non-linear equations.
-- **Trigonometry**: Right triangles (SOHCAHTOA), Sine Rule $\\frac{a}{\\sin A} = \\frac{b}{\\sin B}$, Cosine Rule $a^2 = b^2 + c^2 - 2bc\\cos A$, Area $= \\frac{1}{2}ab\\sin C$.
-- **Vectors & Geometry**: Column vectors $\\begin{pmatrix} x \\\\ y \\end{pmatrix}$, magnitude $\\sqrt{x^2 + y^2}$, vector geometry paths (e.g. $\\vec{AB} = \\vec{AO} + \\vec{OB}$).
-- **Circle Theorems**: Tangent perpendicular to radius ($90^\\circ$), Angle at centre $= 2\\times$ angle at circumference, Angles in same segment are equal, Opposite angles of cyclic quadrilateral sum to $180^\\circ$, Alternate segment theorem.
+1. **The Four Key Mark Types**:
+   - **M marks (Method)**: Awarded for showing a correct algebraic formula or method step, even if your arithmetic calculation is wrong.
+   - **A marks (Accuracy)**: Awarded for the correct numerical value dependent on preceding M marks.
+   - **B marks (Independent)**: Awarded for correct facts, definitions, or statements with no method required.
+   - **C marks (Communication/Working)**: Partial marks in math for showing working.
 
-#### 2. Examiner Precision & Mark Rules:
-- Non-exact numerical answers must be stated to **3 significant figures**.
-- Angles in degrees to **1 decimal place**.
-- Always show working for **M1 (Method marks)**; Cambridge applies **Error Carried Forward (ECF)**.`;
+2. **How Error Carried Forward (ECF) Saves Your Grade**:
+   - If you make an arithmetic error in Part (a) (e.g. getting $x = 12$ instead of $14$), but you use your calculated $x = 12$ correctly in Part (b) using the correct formula, **you receive full method and accuracy marks for Part (b)**.
+   - **Rule**: Never cross out work unless you have written a replacement! Crossed out working cannot be awarded marks unless no other attempt is present.`;
   }
 
-  // 0620 Chemistry
-  if (q.includes('0620') || q.includes('chemistry') || q.includes('mole') || q.includes('electrolysis')) {
-    return `### 🧪 Cambridge IGCSE Chemistry (0620) High-Yield Blueprint
+  // 9. 0580 / 9709 Mathematics
+  if (q.includes('0580') || q.includes('9709') || q.includes('math') || q.includes('vector') || q.includes('trig') || q.includes('circle') || q.includes('quadratic') || q.includes('calculus')) {
+    return `### 📐 Cambridge Mathematics (0580 / 9709) Core Blueprint & High-Yield Traps
+
+#### 1. Top High-Yield Topics:
+- **Algebra & Quadratics**: Quadratic formula $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$, completing the square, expanding brackets, simultaneous linear and non-linear equations.
+- **Trigonometry**: Right triangles (SOHCAHTOA), Sine Rule $\\frac{a}{\\sin A} = \\frac{b}{\\sin B}$, Cosine Rule $a^2 = b^2 + c^2 - 2bc\\cos A$, Area of Triangle $= \\frac{1}{2}ab\\sin C$.
+- **Vectors & Geometry**: Column vectors $\\begin{pmatrix} x \\\\ y \\end{pmatrix}$, magnitude $|\\vec{v}| = \\sqrt{x^2 + y^2}$, vector geometry path finding (e.g. $\\vec{AB} = \\vec{AO} + \\vec{OB}$).
+- **Circle Theorems**:
+  1. Angle at centre is $2\\times$ angle at circumference.
+  2. Angles in the same segment subtended by the same arc are equal.
+  3. Angle in a semi-circle is $90^\\circ$.
+  4. Opposite angles of a cyclic quadrilateral sum to $180^\\circ$.
+  5. Alternate Segment Theorem: Angle between tangent and chord equals angle in alternate segment.
+- **Probability & Statistics**: Independent events $P(A \\cap B) = P(A) \\times P(B)$, Mutually exclusive $P(A \\cup B) = P(A) + P(B)$, Tree diagrams without replacement.
+
+#### 2. Examiner Precision Rules:
+- Non-exact numerical answers must be stated to **3 significant figures**.
+- Angles in degrees to **1 decimal place**.
+- Money values to **2 decimal places**.`;
+  }
+
+  // 10. 0620 / 9701 Chemistry
+  if (q.includes('0620') || q.includes('9701') || q.includes('chemistry') || q.includes('mole') || q.includes('electrolysis') || q.includes('organic') || q.includes('titration')) {
+    return `### 🧪 Cambridge Chemistry (0620 / 9701) High-Yield Blueprint
 
 1. **Stoichiometry & Moles Formulas**:
    - Solids: $n = \\frac{\\text{mass (g)}}{M_r}$
    - Solutions: $n = \\text{concentration (mol/dm}^3) \\times \\text{volume (dm}^3)$
-   - Gases at r.t.p.: $n = \\frac{\\text{volume (dm}^3)}{24\\text{ dm}^3}$
+   - Gases at r.t.p.: $n = \\frac{\\text{volume (dm}^3)}{24\\text{ dm}^3}$ or $n = \\frac{\\text{volume (cm}^3)}{24000\\text{ cm}^3}$
 
 2. **Electrolysis Rules**:
-   - **Cathode (-)**: Hydrogen is discharged unless metal is less reactive than hydrogen (e.g. $\\text{Cu}^{2+} + 2e^- \\rightarrow \\text{Cu}$).
-   - **Anode (+)**: Halide ions ($\\text{Cl}^-, \\text{Br}^-, \\text{I}^-$) are discharged preferentially; otherwise $\\text{OH}^-$ discharges to form $\\text{O}_2$ ($4\\text{OH}^- \\rightarrow \\text{O}_2 + 2\\text{H}_2\\text{O} + 4e^-$).
+   - **Cathode (-)**: Hydrogen gas ($\\text{H}_2$) is discharged unless the metal is less reactive than hydrogen (e.g. $\\text{Cu}^{2+} + 2e^- \\rightarrow \\text{Cu}$).
+   - **Anode (+)**: Halide ions ($\\text{Cl}^-, \\text{Br}^-, \\text{I}^-$) are discharged preferentially; otherwise $\\text{OH}^-$ discharges to form oxygen gas ($4\\text{OH}^- \\rightarrow \\text{O}_2 + 2\\text{H}_2\\text{O} + 4e^-$).
 
 3. **Organic Chemistry**:
    - Alkanes ($C_n H_{2n+2}$), Alkenes ($C_n H_{2n}$), Alcohols ($C_n H_{2n+1}OH$), Carboxylic Acids ($C_n H_{2n+1}COOH$).
-   - Addition polymerisation (monomer with double bond) vs Condensation polymerisation (polyamides & polyesters, yielding small molecule byproduct like $\\text{H}_2\\text{O}$).`;
+   - Addition polymerisation (monomers with double bonds) vs Condensation polymerisation (polyamides like Nylon & polyesters like Terylene, producing small byproduct molecules like $\\text{H}_2\\text{O}$).
+
+4. **Qualitative Analysis (Flame Tests & Ion Precipitates)**:
+   - $\\text{Cu}^{2+}$: Light blue precipitate with $\\text{NaOH}$; dissolves in excess $\\text{NH}_3$ to form a deep blue solution.
+   - $\\text{Fe}^{2+}$: Green precipitate insoluble in excess.
+   - $\\text{Fe}^{3+}$: Red-brown precipitate insoluble in excess.`;
   }
 
-  // 0625 Physics
-  if (q.includes('0625') || q.includes('physics') || q.includes('wave') || q.includes('circuit')) {
-    return `### ⚡ Cambridge IGCSE Physics (0625) Essential Formula & Traps
+  // 11. 0625 / 9702 Physics
+  if (q.includes('0625') || q.includes('9702') || q.includes('physics') || q.includes('wave') || q.includes('circuit') || q.includes('velocity') || q.includes('mechanics')) {
+    return `### ⚡ Cambridge Physics (0625 / 9702) Essential Formula & Traps
 
 1. **Mechanics & Dynamics**:
    - Speed & Acceleration: $v = \\frac{s}{t}$, $a = \\frac{v-u}{t}$
-   - Newton's 2nd Law: $F = ma$, Weight: $W = mg$ ($g = 9.8\\text{ m/s}^2$)
-   - Kinetic & Potential Energy: $E_k = \\frac{1}{2}mv^2$, $E_p = mgh$
+   - Equations of Motion: $v = u + at$, $s = ut + \\frac{1}{2}at^2$, $v^2 = u^2 + 2as$
+   - Newton's 2nd Law: $F = ma$, Weight: $W = mg$ ($g = 9.8\\text{ m/s}^2$ or $10\\text{ m/s}^2$)
+   - Kinetic & Potential Energy: $E_k = \\frac{1}{2}mv^2$, $E_p = mgh$, Work: $W = F \\times d$
 
 2. **Electricity & Circuits**:
    - Ohm's Law: $V = IR$, Electrical Power: $P = IV = I^2 R = \\frac{V^2}{R}$
-   - Resistors in Series: $R_{\\text{total}} = R_1 + R_2$
+   - Resistors in Series: $R_{\\text{total}} = R_1 + R_2 + R_3$
    - Resistors in Parallel: $\\frac{1}{R_{\\text{total}}} = \\frac{1}{R_1} + \\frac{1}{R_2}$
 
 3. **Waves & Thermal**:
-   - Wave speed: $v = f\\lambda$, Law of refraction: $n = \\frac{\\sin i}{\\sin r} = \\frac{1}{\\sin c}$
-   - Specific Heat Capacity: $Q = mc\\Delta T$`;
+   - Wave equation: $v = f\\lambda$, Refractive index: $n = \\frac{\\sin i}{\\sin r} = \\frac{1}{\\sin c} = \\frac{c}{v}$
+   - Specific Heat Capacity: $Q = mc\\Delta T$, Latent Heat: $Q = mL$`;
   }
 
-  // 0610 Biology
-  if (q.includes('0610') || q.includes('biology') || q.includes('enzyme') || q.includes('photosynthesis')) {
-    return `### 🌿 Cambridge IGCSE Biology (0610) Core Principles & Traps
+  // 12. 0610 / 9700 Biology
+  if (q.includes('0610') || q.includes('9700') || q.includes('biology') || q.includes('enzyme') || q.includes('photosynthesis') || q.includes('heart') || q.includes('cell')) {
+    return `### 🌿 Cambridge Biology (0610 / 9700) Core Principles & Traps
 
-1. **Enzyme Action**:
-   - Describe lock-and-key hypothesis: Active site complementary to substrate.
-   - At high temperature or extreme pH: Enzyme is **denatured** (active site changes shape so substrate no longer fits)—never say the enzyme is "killed".
+1. **Enzyme Action & Denaturation**:
+   - Lock-and-key hypothesis: Active site complementary in shape to specific substrate.
+   - At high temperature (>45°C) or extreme pH: Enzyme is **denatured** (tertiary protein structure and active site shape are permanently altered so substrate no longer fits)—**never write that the enzyme is "killed"** (examiner report penalty).
 
-2. **Photosynthesis & Transport**:
-   - Photosynthesis: $6\\text{CO}_2 + 6\\text{H}_2\\text{O} \\xrightarrow{\\text{light, chlorophyll}} \\text{C}_6\\text{H}_{12}\\text{O}_6 + 6\\text{O}_2$.
-   - Xylem transports water and mineral ions unidirectionally (transpiration pull).
-   - Phloem transports sucrose and amino acids bidirectionally (translocation).
+2. **Photosynthesis & Plant Transport**:
+   - Equation: $6\\text{CO}_2 + 6\\text{H}_2\\text{O} \\xrightarrow{\\text{light, chlorophyll}} \\text{C}_6\\text{H}_{12}\\text{O}_6 + 6\\text{O}_2$.
+   - **Xylem**: Transports water and dissolved mineral ions unidirectionally from roots to leaves via transpiration pull.
+   - **Phloem**: Transports sucrose and amino acids bidirectionally (translocation) from sources to sinks.
 
 3. **Magnification Formula**:
-   - $\\text{Magnification} = \\frac{\\text{Image size}}{\\text{Actual size}}$ ($M = \\frac{I}{A}$). Always convert image measurements into the same units (e.g. mm to $\\mu$m by multiplying by 1000).`;
+   - $\\text{Magnification} = \\frac{\\text{Image Size (I)}}{\\text{Actual Size (A)}}$ ($M = \\frac{I}{A}$).
+   - **Trap**: Always measure in millimetres (mm) and convert to micrometres ($\\mu$m) by multiplying by 1000 before computing.`;
   }
 
-  // Paper 4 Theory Strategy
-  if (q.includes('paper 4') || q.includes('p4') || q.includes('extended') || q.includes('hard')) {
+  // 13. Paper 4 Theory Strategy
+  if (q.includes('paper 4') || q.includes('p4') || q.includes('extended') || q.includes('hard') || q.includes('difficult')) {
     return `### ⚡ Paper 4 Crisis Strategy: Maximizing Raw Marks
-Examiner reports reveal that up to **22% of lost marks** stem from command words and missing intermediate working:
+Cambridge examiner reports reveal that up to **22% of lost marks** stem from command word misunderstandings and missing intermediate working:
 
 1. **Follow the Command Words**:
-   - **"State" / "Name"**: 1 line only. Do not write paragraphs.
+   - **"State" / "Name"**: 1 line only. Do not write lengthy explanations.
    - **"Explain"**: Requires cause-and-effect link (*"X happens because Y, resulting in Z"*).
-   - **"Evaluate" / "Discuss"**: Balanced arguments with definitive concluding judgment.
+   - **"Evaluate" / "Discuss"**: Balanced arguments with a definitive concluding judgment.
 
 2. **The 1-Minute-Per-Mark Rule**:
    - Allocate **~1 minute per mark**. If stuck on a 3-mark calculation for >3 minutes, write the formula (secures M1), make an educated estimate, and keep moving.
@@ -455,14 +423,14 @@ Examiner reports reveal that up to **22% of lost marks** stem from command words
    - Always state intermediate formulas. If your arithmetic slips, ECF protects all subsequent marks.`;
   }
 
-  // Paper 6 ATP Strategy
-  if (q.includes('paper 6') || q.includes('atp') || q.includes('alternative to practical')) {
+  // 14. Paper 6 ATP Strategy
+  if (q.includes('paper 6') || q.includes('atp') || q.includes('alternative to practical') || q.includes('experiment')) {
     return `### 🧪 Paper 6 (Alternative to Practical) High-Yield Rules
 Paper 6 is the highest return on investment for grade improvement:
 
 1. **Graph Plotting Rules**:
    - Plot points with **small neat crosses (x)**.
-   - Scale must occupy **more than 50%** of the grid on both axes.
+   - Points and scale must occupy **more than 50%** of the grid on both axes.
    - Draw a single, smooth line of best fit—never connect dots with a ruler like a staircase.
 
 2. **Planning 6-Mark Experiment Question**:
@@ -472,7 +440,7 @@ Paper 6 is the highest return on investment for grade improvement:
    - **Safety**: Specific hazard precaution (e.g. *wear goggles when heating acid*, *use gloves for corrosive reagents*).`;
   }
 
-  // Grade Thresholds
+  // 15. Grade Thresholds
   if (q.includes('threshold') || q.includes('boundary') || q.includes('grade') || q.includes('curve')) {
     return `### 📊 Grade Thresholds & Boundary Dynamics
 - **Standardized Globally**: Cambridge grade thresholds are determined **after** all papers worldwide are marked. If a paper was exceptionally difficult, thresholds drop to protect students.
@@ -483,17 +451,20 @@ Paper 6 is the highest return on investment for grade improvement:
 - Focus purely on securing every accessible method mark in front of you.`;
   }
 
-  return `### 🎯 Cambridge Academic Support: Action Plan for ${subjects}
-Here is your actionable guidance for your Cambridge exam series:
+  // 16. General Dynamic Advice tailored to query
+  return `### 🎯 Cambridge Academic Guidance: ${query.length > 30 ? query.slice(0, 30) + '...' : query}
 
-1. **Active Retrieval over Passive Reading**:
-   - Solve classified past papers under timed conditions (2020–2024 Series).
-2. **Examiner Reports Analysis**:
-   - Review Cambridge Principal Examiner Reports to identify common misconceptions.
-3. **Formula & Units Precision**:
-   - Keep non-exact numerical answers to **3 significant figures**, state all working steps to guarantee **Method (M) marks**.
+Here is your tailored strategy for **${subjects}**:
 
-*What specific question, syllabus concept, or past paper component would you like to tackle next?*`;
+1. **Active Retrieval & Problem Solving**:
+   - Solve classified past paper questions from recent series (2021–2024). Time yourself strictly to build exam pace.
+2. **Formula & Method Precision**:
+   - Write out governing equations first to guarantee **M1 (Method)** marks.
+   - State non-exact numerical answers to **3 significant figures** with standard SI units.
+3. **Targeted Drill**:
+   - Identify weak sub-topics and cross-reference them against Cambridge Principal Examiner Reports.
+
+*What specific question, equation, or past paper topic should we solve next?*`;
 }
 
 async function startServer() {
@@ -504,11 +475,12 @@ async function startServer() {
 
   // Health check
   app.get('/api/health', (req, res) => {
+    const key = getEffectiveApiKey();
     res.json({
       status: 'ok',
       service: 'Cambridge Nightmare Support API',
       timestamp: new Date().toISOString(),
-      hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
+      hasGeminiKey: Boolean(key),
     });
   });
 
@@ -522,9 +494,9 @@ async function startServer() {
         return;
       }
 
-      const promptText = message || 'Please analyze this attached study material / question and provide step-by-step guidance, mark scheme criteria, and key traps.';
+      const promptText = (message || '').trim() || 'Please analyze this attached study material / question and provide step-by-step guidance, mark scheme criteria, and key traps.';
 
-      // Format conversation contents for multi-turn chat
+      // Format conversation contents for multi-turn chat in @google/genai format
       const contents: Array<{ role: 'user' | 'model'; parts: any[] }> = [];
 
       // If candidate has context (selected subjects, email, etc.), prepend it as system-aware introductory context
@@ -603,13 +575,10 @@ async function startServer() {
         parts: userParts,
       });
 
-      // List of candidate models in prioritized order according to @google/genai guidelines
       const candidateModels = [
         'gemini-2.5-flash',
         'gemini-3.7-flash',
         'gemini-flash-latest',
-        'gemini-3.1-flash-lite',
-        'gemini-3.1-pro-preview',
       ];
 
       let replyText = '';
@@ -617,27 +586,8 @@ async function startServer() {
 
       const apiKey = getEffectiveApiKey();
 
-      // 1. Try VoidAI / OpenAI compatible gateway first if key is present
+      // Call Google GenAI SDK if API key is present
       if (apiKey) {
-        try {
-          const voidAiReply = await callVoidAiChat(
-            apiKey,
-            contextualSystemInstruction,
-            history || [],
-            promptText,
-            attachments || []
-          );
-          if (voidAiReply) {
-            replyText = voidAiReply;
-            successfulModel = 'voidai-gpt4o';
-          }
-        } catch (voidErr) {
-          console.warn('VoidAI calling exception:', voidErr);
-        }
-      }
-
-      // 2. If VoidAI did not handle it and key might be Google GenAI key, try GoogleGenAI
-      if (!replyText && apiKey && apiKey.startsWith('AIza')) {
         try {
           const ai = getGenAI();
 
@@ -649,7 +599,7 @@ async function startServer() {
                 config: {
                   systemInstruction: contextualSystemInstruction,
                   temperature: 0.7,
-                  maxOutputTokens: 2000,
+                  maxOutputTokens: 2500,
                 },
               });
 
@@ -659,15 +609,15 @@ async function startServer() {
                 break;
               }
             } catch (modelErr: any) {
-              console.warn(`Model ${modelToTry} attempt failed, trying next:`, modelErr?.message || modelErr);
+              console.warn(`Model ${modelToTry} attempt error:`, modelErr?.message || modelErr);
             }
           }
         } catch (genAiErr) {
-          console.warn('GenAI client initialization warning:', genAiErr);
+          console.warn('GenAI execution error:', genAiErr);
         }
       }
 
-      // If AI did not return a response or key not set, provide an intelligent fallback academic response
+      // If AI did not return a response or key not set, provide an intelligent dynamic academic response
       if (!replyText) {
         replyText = generateFallbackCambridgeResponse(promptText, candidateContext, attachments);
         successfulModel = 'cambridge-academic-advisor';
