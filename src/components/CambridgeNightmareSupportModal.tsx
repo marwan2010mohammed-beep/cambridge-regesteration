@@ -28,6 +28,7 @@ import {
   ZoomIn,
 } from 'lucide-react';
 import { ChatMessage, CandidateChatContext, ChatAttachment } from '../types';
+import ChatReasoningDemo from './ui/demo';
 
 interface CambridgeNightmareSupportModalProps {
   isOpen: boolean;
@@ -942,6 +943,12 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
                   >
                     <Markdown>{msg.text}</Markdown>
                   </div>
+                  
+                  {msg.id === 'init-msg-001' && (
+                    <div style={{ marginTop: '12px' }}>
+                      <ChatReasoningDemo />
+                    </div>
+                  )}
 
                   {/* Message Tools (Copy) */}
                   <div

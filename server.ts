@@ -239,9 +239,8 @@ async function startServer() {
       // List of candidate models in prioritized order
       const candidateModels = [
         'gemini-3.6-flash',
-        'gemini-3.7-flash',
+        'gemini-3.1-pro-preview',
         'gemini-2.0-flash',
-        'gemini-1.5-flash',
       ];
 
       let replyText = '';

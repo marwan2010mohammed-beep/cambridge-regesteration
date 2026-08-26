@@ -290,6 +290,31 @@ export default function App() {
     }
   }, [activeModal]);
 
+  // Scroll-triggered animations observer
+  useEffect(() => {
+    const animatedElements = document.querySelectorAll('.animate-on-scroll, .header-anim');
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    animatedElements.forEach((el) => {
+      observer.observe(el);
+    });
+
+    return () => {
+      animatedElements.forEach((el) => {
+        observer.unobserve(el);
+      });
+    };
+  }, []);
+
   const toggleMenu = () => {
     setMenuOpen((prev) => !prev);
   };
@@ -614,7 +639,7 @@ export default function App() {
       </div>
 
       {/* Navigation Header */}
-      <nav role="banner">
+      <nav role="banner" className="header-anim">
         <a href="#top" className="logo flex items-center gap-1.5" id="brand-logo" aria-label="Cambridge International">
           CAMBRIDGE <span className="purple-glow-pulse font-extrabold tracking-wide">NIGHTMARE</span>
         </a>
@@ -907,21 +932,29 @@ export default function App() {
 
             <WizardStepContentWrapper currentStep={wizardStep} direction={stepDirection}>
               {wizardStep === 1 && (
-                <div className="wizard-step">
+                <div className="wizard-step flex flex-col items-center">
+                  <div className="text-xs bg-indigo-500/20 text-indigo-400 font-medium px-3 py-1 rounded-full mb-2 border border-indigo-500/30">
+                    Candidate Portal
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-1 text-center">Verify Credentials</h3>
+                  <p className="text-xs text-slate-400 mb-6 text-center">
+                    Enter your active personal email and Discord handle for exam confirmation.
+                  </p>
+
             {/* Email Field with Live Check */}
-            <div>
-              <div className="input-field-wrapper">
-                <span className="input-field-icon" aria-hidden="true">
-                  <Mail size={15} color={email ? (emailValidation.isValid ? '#4ade80' : '#f87171') : 'var(--text-dim)'} />
+            <div className="w-full mb-4">
+              <label htmlFor="candidate-email" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                Personal Email
+              </label>
+              <div className="flex items-center h-11 pl-3 pr-2 bg-slate-900/80 border border-slate-700 rounded-full focus-within:ring-2 focus-within:ring-indigo-500 transition-all overflow-hidden relative">
+                <span className="flex items-center mr-2 text-slate-400" aria-hidden="true">
+                  <Mail size={16} color={email ? (emailValidation.isValid ? '#4ade80' : '#f87171') : 'var(--text-dim)'} />
                 </span>
-                <label htmlFor="candidate-email" className="sr-only">
-                  Personal Email
-                </label>
                 <input
                   type="email"
                   id="candidate-email"
-                  className="email-field email-field--with-icon"
-                  placeholder="Personal Email (e.g. candidate@example.com)"
+                  className="h-full w-full outline-none bg-transparent text-sm text-white placeholder-slate-500"
+                  placeholder="candidate@example.com"
                   aria-label="Personal Email"
                   value={email}
                   onChange={(e) => {
@@ -931,29 +964,13 @@ export default function App() {
                   onBlur={() => setEmailTouched(true)}
                   autoComplete="email"
                   required
-                  style={{
-                    borderBottomColor: email
-                      ? emailValidation.isValid
-                        ? 'rgba(74, 222, 128, 0.7)'
-                        : 'rgba(248, 113, 113, 0.7)'
-                      : undefined,
-                  }}
                 />
                 {email && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      right: '4px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
+                  <span className="flex items-center ml-2">
                     {emailValidation.isValid ? (
-                      <CheckCircle2 size={15} color="#4ade80" />
+                      <CheckCircle2 size={16} color="#4ade80" />
                     ) : (
-                      <AlertTriangle size={15} color="#f87171" />
+                      <AlertTriangle size={16} color="#f87171" />
                     )}
                   </span>
                 )}
@@ -961,7 +978,7 @@ export default function App() {
 
               {/* Email Live Feedback Message */}
               {email && emailValidation.isValid && !emailValidation.warning && (
-                <div className="form-validation-feedback is-valid" style={{ marginTop: '6px' }}>
+                <div className="form-validation-feedback is-valid mt-1.5 flex items-center gap-1.5 text-xs text-emerald-400">
                   <CheckCircle2 size={12} color="#4ade80" />
                   <span>
                     Valid candidate email ({emailValidation.normalized})
@@ -978,7 +995,7 @@ export default function App() {
                           border: '1px solid rgba(96, 165, 250, 0.3)',
                         }}
                       >
-                        ✓ Provider Verified
+                        ✓ Verified
                       </span>
                     )}
                   </span>
@@ -1032,7 +1049,7 @@ export default function App() {
               )}
 
               {(email || emailTouched) && !emailValidation.isValid && (
-                <div className="form-validation-feedback is-invalid">
+                <div className="form-validation-feedback is-invalid mt-1.5 flex items-center gap-1.5 text-xs text-rose-400">
                   <AlertTriangle size={11} />
                   <span>{emailValidation.error}</span>
                 </div>
@@ -1040,19 +1057,19 @@ export default function App() {
             </div>
 
             {/* Discord Username Field with Live Check & Server Link */}
-            <div>
-              <div className="input-field-wrapper">
-                <span className="input-field-icon" aria-hidden="true">
-                  <MessageSquare size={15} color={discord ? (discordValidation.isValid ? '#4ade80' : '#f87171') : 'var(--text-dim)'} />
+            <div className="w-full mb-6">
+              <label htmlFor="candidate-discord" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                Discord Username
+              </label>
+              <div className="flex items-center h-11 pl-3 pr-2 bg-slate-900/80 border border-slate-700 rounded-full focus-within:ring-2 focus-within:ring-indigo-500 transition-all overflow-hidden relative">
+                <span className="flex items-center mr-2 text-slate-400" aria-hidden="true">
+                  <MessageSquare size={16} color={discord ? (discordValidation.isValid ? '#4ade80' : '#f87171') : 'var(--text-dim)'} />
                 </span>
-                <label htmlFor="candidate-discord" className="sr-only">
-                  Discord Username
-                </label>
                 <input
                   type="text"
                   id="candidate-discord"
-                  className="email-field email-field--with-icon"
-                  placeholder="Discord Username (e.g. @candidate or username)"
+                  className="h-full w-full outline-none bg-transparent text-sm text-white placeholder-slate-500"
+                  placeholder="@candidate or username"
                   aria-label="Discord Username"
                   value={discord}
                   onChange={(e) => {
@@ -1062,29 +1079,13 @@ export default function App() {
                   onBlur={() => setDiscordTouched(true)}
                   autoComplete="off"
                   required
-                  style={{
-                    borderBottomColor: discord
-                      ? discordValidation.isValid
-                        ? 'rgba(74, 222, 128, 0.7)'
-                        : 'rgba(248, 113, 113, 0.7)'
-                      : undefined,
-                  }}
                 />
                 {discord && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      right: '4px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
+                  <span className="flex items-center ml-2">
                     {discordValidation.isValid ? (
-                      <CheckCircle2 size={15} color="#4ade80" />
+                      <CheckCircle2 size={16} color="#4ade80" />
                     ) : (
-                      <AlertTriangle size={15} color="#f87171" />
+                      <AlertTriangle size={16} color="#f87171" />
                     )}
                   </span>
                 )}
@@ -1092,30 +1093,31 @@ export default function App() {
 
               {/* Discord Live Feedback Message */}
               {discord && discordValidation.isValid && (
-                <div className="form-validation-feedback is-valid">
+                <div className="form-validation-feedback is-valid mt-1.5 flex items-center gap-1.5 text-xs text-emerald-400">
                   <CheckCircle2 size={11} />
-                  <span>Valid Discord handle: <strong style={{ color: '#4ade80' }}>{discordValidation.normalized}</strong> (Admins will DM this handle)</span>
+                  <span>Valid Discord handle: <strong style={{ color: '#4ade80' }}>{discordValidation.normalized}</strong> (Admins will DM this)</span>
                 </div>
               )}
               {(discord || discordTouched) && !discordValidation.isValid && (
-                <div className="form-validation-feedback is-invalid">
+                <div className="form-validation-feedback is-invalid mt-1.5 flex items-center gap-1.5 text-xs text-rose-400">
                   <AlertTriangle size={11} />
                   <span>{discordValidation.error}</span>
                 </div>
               )}
               {!discord && !discordTouched && (
-                <div className="form-validation-feedback is-hint">
+                <div className="form-validation-feedback is-hint mt-1.5 text-xs text-slate-400">
                   <span>Admins will DM your Discord username to confirm paper components.</span>
                 </div>
               )}
             </div>
 
-                <div style={{ marginTop: '20px' }}>
+                <div className="w-full" style={{ marginTop: '14px', marginBottom: '10px' }}>
                   <UiverseButton
                     type="button"
                     variant="default"
                     size="lg"
                     fullWidth
+                    id="btn-proceed-email"
                     onClick={() => {
                       setEmailTouched(true);
                       setDiscordTouched(true);
