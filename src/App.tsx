@@ -57,19 +57,45 @@ function WizardStepContentWrapper({
   children: React.ReactNode;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [parentHeight, setParentHeight] = useState<number>(0);
+  const [parentHeight, setParentHeight] = useState<number | 'auto'>('auto');
+  const [isAnimating, setIsAnimating] = useState(false);
 
   useLayoutEffect(() => {
-    if (containerRef.current) {
-      setParentHeight(containerRef.current.offsetHeight);
+    if (!containerRef.current) return;
+
+    const updateHeight = () => {
+      if (containerRef.current) {
+        const h = containerRef.current.offsetHeight;
+        if (h > 0) {
+          setParentHeight(h);
+        }
+      }
+    };
+
+    updateHeight();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(() => {
+        updateHeight();
+      });
+      observer.observe(containerRef.current);
+      return () => observer.disconnect();
     }
   }, [currentStep, children]);
 
   return (
     <motion.div
-      style={{ position: 'relative', overflow: 'hidden' }}
-      animate={{ height: parentHeight || 'auto' }}
+      style={{
+        position: 'relative',
+        overflow: isAnimating ? 'hidden' : 'visible',
+      }}
+      animate={{ height: parentHeight }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+      onAnimationStart={() => setIsAnimating(true)}
+      onAnimationComplete={() => {
+        setIsAnimating(false);
+        setParentHeight('auto');
+      }}
     >
       <AnimatePresence initial={false} mode="wait" custom={direction}>
         <motion.div
@@ -84,7 +110,7 @@ function WizardStepContentWrapper({
             x: { type: 'spring', stiffness: 300, damping: 30 },
             opacity: { duration: 0.2 },
           }}
-          className="w-full"
+          className="w-full pb-2"
         >
           {children}
         </motion.div>
@@ -134,7 +160,14 @@ export default function App() {
   // Live input touch / interaction state for validation styling
   const [emailTouched, setEmailTouched] = useState(false);
   const [discordTouched, setDiscordTouched] = useState(false);
+  const [isEmailFocused, setIsEmailFocused] = useState(false);
+  const [isDiscordFocused, setIsDiscordFocused] = useState(false);
   const [emailCheckboxChecked, setEmailCheckboxChecked] = useState(true);
+
+  // Framer Motion Shake Animation Triggers for validation error feedback
+  const [shakeEmail, setShakeEmail] = useState(0);
+  const [shakeDiscord, setShakeDiscord] = useState(0);
+  const [shakeSubjectSearch, setShakeSubjectSearch] = useState(0);
 
   // Loading animation state with Uiverse.io bouncing circles loader
   const [isProcessingAction, setIsProcessingAction] = useState(false);
@@ -145,6 +178,18 @@ export default function App() {
   const emailValidation = useMemo(() => validateEmail(email), [email]);
   const discordValidation = useMemo(() => validateDiscordHandle(discord), [discord]);
   const selectedCount = useMemo(() => subjects.filter((s) => s.selected).length, [subjects]);
+
+  const triggerInputShake = () => {
+    if (!emailValidation.isValid) {
+      setShakeEmail((prev) => prev + 1);
+    }
+    if (!discordValidation.isValid) {
+      setShakeDiscord((prev) => prev + 1);
+    }
+    if (selectedCount === 0) {
+      setShakeSubjectSearch((prev) => prev + 1);
+    }
+  };
 
   // Submit button is enabled only when all live validation checks pass
   const isFormValid = emailValidation.isValid && discordValidation.isValid && selectedCount > 0;
@@ -419,20 +464,23 @@ export default function App() {
     setEmailTouched(true);
     setDiscordTouched(true);
 
-    if (!emailValidation.isValid) {
-      setFeedbackMessage(emailValidation.error || 'Please enter a valid candidate email address.');
-      setActiveModal('error');
-      return;
-    }
-    if (!discordValidation.isValid) {
-      setFeedbackMessage(discordValidation.error || 'Please enter a valid Discord handle (e.g. @username).');
-      setActiveModal('error');
-      return;
-    }
-    if (selectedSubjectsList.length === 0) {
-      setFeedbackMessage('Please select at least 1 Cambridge IGCSE paper component from the search bar or catalog to enroll.');
-      setActiveModal('error');
-      return;
+    if (!emailValidation.isValid || !discordValidation.isValid || selectedSubjectsList.length === 0) {
+      triggerInputShake();
+      if (!emailValidation.isValid) {
+        setFeedbackMessage(emailValidation.error || 'Please enter a valid candidate email address.');
+        setActiveModal('error');
+        return;
+      }
+      if (!discordValidation.isValid) {
+        setFeedbackMessage(discordValidation.error || 'Please enter a valid Discord handle (e.g. @username).');
+        setActiveModal('error');
+        return;
+      }
+      if (selectedSubjectsList.length === 0) {
+        setFeedbackMessage('Please select at least 1 Cambridge IGCSE paper component from the search bar or catalog to enroll.');
+        setActiveModal('error');
+        return;
+      }
     }
 
     // Intercept if domain typo warning exists before final submission
@@ -949,7 +997,38 @@ export default function App() {
               <label htmlFor="candidate-email" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
                 Personal Email
               </label>
-              <div className="flex items-center h-11 pl-3 pr-2 bg-slate-900/80 border border-slate-700 rounded-full focus-within:ring-2 focus-within:ring-indigo-500 transition-all overflow-hidden relative">
+              <motion.div
+                key={`email-input-wrapper-${shakeEmail}`}
+                animate={{
+                  x: shakeEmail > 0 ? [0, -8, 8, -6, 6, -3, 3, 0] : 0,
+                  boxShadow: isEmailFocused
+                    ? emailTouched && !emailValidation.isValid
+                      ? [
+                          '0 0 0 2px rgba(244, 63, 94, 0.4), 0 0 12px rgba(244, 63, 94, 0.25)',
+                          '0 0 0 2px rgba(244, 63, 94, 0.7), 0 0 22px rgba(244, 63, 94, 0.5)',
+                          '0 0 0 2px rgba(244, 63, 94, 0.4), 0 0 12px rgba(244, 63, 94, 0.25)',
+                        ]
+                      : [
+                          '0 0 0 2px rgba(99, 102, 241, 0.4), 0 0 12px rgba(99, 102, 241, 0.25)',
+                          '0 0 0 2px rgba(129, 140, 248, 0.7), 0 0 22px rgba(129, 140, 248, 0.5)',
+                          '0 0 0 2px rgba(99, 102, 241, 0.4), 0 0 12px rgba(99, 102, 241, 0.25)',
+                        ]
+                    : '0 0 0 0px rgba(0,0,0,0)',
+                }}
+                transition={{
+                  x: { duration: 0.45, ease: 'easeInOut' },
+                  boxShadow: isEmailFocused
+                    ? { duration: 2, repeat: Infinity, ease: 'easeInOut' }
+                    : { duration: 0.3 },
+                }}
+                className={`flex items-center h-11 pl-3 pr-2 bg-slate-900/80 border rounded-full transition-all overflow-hidden relative ${
+                  emailTouched && !emailValidation.isValid
+                    ? 'border-rose-500/80'
+                    : isEmailFocused
+                    ? 'border-indigo-500'
+                    : 'border-slate-700'
+                }`}
+              >
                 <span className="flex items-center mr-2 text-slate-400" aria-hidden="true">
                   <Mail size={16} color={email ? (emailValidation.isValid ? '#4ade80' : '#f87171') : 'var(--text-dim)'} />
                 </span>
@@ -964,7 +1043,11 @@ export default function App() {
                     setEmail(e.target.value);
                     if (!emailTouched) setEmailTouched(true);
                   }}
-                  onBlur={() => setEmailTouched(true)}
+                  onFocus={() => setIsEmailFocused(true)}
+                  onBlur={() => {
+                    setIsEmailFocused(false);
+                    setEmailTouched(true);
+                  }}
                   autoComplete="email"
                   required
                 />
@@ -977,7 +1060,7 @@ export default function App() {
                     )}
                   </span>
                 )}
-              </div>
+              </motion.div>
 
               {/* Email Live Feedback Message */}
               <AnimatePresence>
@@ -1139,7 +1222,38 @@ export default function App() {
               <label htmlFor="candidate-discord" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
                 Discord Username
               </label>
-              <div className="flex items-center h-11 pl-3 pr-2 bg-slate-900/80 border border-slate-700 rounded-full focus-within:ring-2 focus-within:ring-indigo-500 transition-all overflow-hidden relative">
+              <motion.div
+                key={`discord-input-wrapper-${shakeDiscord}`}
+                animate={{
+                  x: shakeDiscord > 0 ? [0, -8, 8, -6, 6, -3, 3, 0] : 0,
+                  boxShadow: isDiscordFocused
+                    ? discordTouched && !discordValidation.isValid
+                      ? [
+                          '0 0 0 2px rgba(244, 63, 94, 0.4), 0 0 12px rgba(244, 63, 94, 0.25)',
+                          '0 0 0 2px rgba(244, 63, 94, 0.7), 0 0 22px rgba(244, 63, 94, 0.5)',
+                          '0 0 0 2px rgba(244, 63, 94, 0.4), 0 0 12px rgba(244, 63, 94, 0.25)',
+                        ]
+                      : [
+                          '0 0 0 2px rgba(99, 102, 241, 0.4), 0 0 12px rgba(99, 102, 241, 0.25)',
+                          '0 0 0 2px rgba(129, 140, 248, 0.7), 0 0 22px rgba(129, 140, 248, 0.5)',
+                          '0 0 0 2px rgba(99, 102, 241, 0.4), 0 0 12px rgba(99, 102, 241, 0.25)',
+                        ]
+                    : '0 0 0 0px rgba(0,0,0,0)',
+                }}
+                transition={{
+                  x: { duration: 0.45, ease: 'easeInOut' },
+                  boxShadow: isDiscordFocused
+                    ? { duration: 2, repeat: Infinity, ease: 'easeInOut' }
+                    : { duration: 0.3 },
+                }}
+                className={`flex items-center h-11 pl-3 pr-2 bg-slate-900/80 border rounded-full transition-all overflow-hidden relative ${
+                  discordTouched && !discordValidation.isValid
+                    ? 'border-rose-500/80'
+                    : isDiscordFocused
+                    ? 'border-indigo-500'
+                    : 'border-slate-700'
+                }`}
+              >
                 <span className="flex items-center mr-2 text-slate-400" aria-hidden="true">
                   <MessageSquare size={16} color={discord ? (discordValidation.isValid ? '#4ade80' : '#f87171') : 'var(--text-dim)'} />
                 </span>
@@ -1154,7 +1268,11 @@ export default function App() {
                     setDiscord(e.target.value);
                     if (!discordTouched) setDiscordTouched(true);
                   }}
-                  onBlur={() => setDiscordTouched(true)}
+                  onFocus={() => setIsDiscordFocused(true)}
+                  onBlur={() => {
+                    setIsDiscordFocused(false);
+                    setDiscordTouched(true);
+                  }}
                   autoComplete="off"
                   required
                 />
@@ -1167,7 +1285,7 @@ export default function App() {
                     )}
                   </span>
                 )}
-              </div>
+              </motion.div>
 
               {/* Discord Live Feedback Message */}
               <AnimatePresence>
@@ -1226,6 +1344,8 @@ export default function App() {
                       if (emailValidation.isValid && discordValidation.isValid) {
                         setStepDirection(1);
                         setWizardStep(2);
+                      } else {
+                        triggerInputShake();
                       }
                     }}
                   >
@@ -3284,11 +3404,26 @@ export default function App() {
           isOpen={activeModal === 'nightmare'}
           onClose={() => setActiveModal(null)}
           candidateContext={{
-            selectedSubjects: subjects.filter((s) => s.selected).map((s) => `${s.code} ${s.name} (${s.tier})`),
-            email: email || undefined,
-            discord: discord || undefined,
-            candidateName: candidateName || undefined,
+            selectedSubjects: subjects
+              .filter((s) => s.selected)
+              .map((s) => {
+                const papers = s.selectedPapers && s.selectedPapers.length > 0 ? s.selectedPapers.join(', ') : s.papers.join(', ');
+                return `${s.code} ${s.name} [Tier: ${s.tier}] — Components: ${papers}`;
+              }),
+            email: email.trim() || undefined,
+            discord: discord.trim() || undefined,
+            candidateName: candidateName.trim() || undefined,
+            centerNumber: centerNumber.trim() || undefined,
             clashesCount: timetableSummary.directClashesCount,
+            sameDayDoublesCount: timetableSummary.sameDayDoubleCount,
+            totalPapers: timetableSummary.totalPapers,
+            firstExamDate: timetableSummary.startDate,
+            lastExamDate: timetableSummary.endDate,
+            busiestWeek: timetableSummary.busiestWeek,
+            clashesDetails: timetableSummary.clashes.map(
+              (c) => `${c.date} (${c.session || 'Session'}): ${c.papers.map((p) => `${p.subjectCode} ${p.paperName}`).join(' & ')} - ${c.description} (Guidance: ${c.resolutionGuidance})`
+            ),
+            examSeries: 'Cambridge IGCSE / O Level / AS & A Level — October / November 2026',
           }}
         />
       </Suspense>

@@ -128,6 +128,16 @@ export interface CandidateChatContext {
   email?: string;
   discord?: string;
   candidateName?: string;
+  centerNumber?: string;
   clashesCount?: number;
+  sameDayDoublesCount?: number;
+  totalPapers?: number;
+  firstExamDate?: string;
+  lastExamDate?: string;
+  busiestWeek?: string;
+  examScheduleSummary?: string;
+  clashesDetails?: string[];
+  examSeries?: string;
+  currentUrgency?: 'normal' | 'panic_48h' | 'clash_crisis';
 }
 

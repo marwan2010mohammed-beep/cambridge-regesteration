@@ -12,9 +12,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 function getEffectiveApiKey(): string {
-  if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length > 0) {
-    const key = process.env.GEMINI_API_KEY.trim().replace(/^["']|["']$/g, '');
-    if (key && key !== 'MY_GEMINI_API_KEY') {
+  const envKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.API_KEY;
+  if (envKey && envKey.trim().length > 0) {
+    const key = envKey.trim().replace(/^["']|["']$/g, '');
+    if (key && key !== 'MY_GEMINI_API_KEY' && key !== 'YOUR_API_KEY') {
       return key;
     }
   }
@@ -22,10 +23,10 @@ function getEffectiveApiKey(): string {
     const envPath = path.join(process.cwd(), '.env');
     if (fs.existsSync(envPath)) {
       const content = fs.readFileSync(envPath, 'utf8');
-      const match = content.match(/GEMINI_API_KEY=([^\r\n]+)/);
+      const match = content.match(/(?:GEMINI_API_KEY|VITE_GEMINI_API_KEY|API_KEY)=([^\r\n]+)/);
       if (match && match[1]) {
         const val = match[1].trim().replace(/^["']|["']$/g, '');
-        if (val && val !== 'MY_GEMINI_API_KEY') {
+        if (val && val !== 'MY_GEMINI_API_KEY' && val !== 'YOUR_API_KEY') {
           return val;
         }
       }
@@ -37,13 +38,15 @@ function getEffectiveApiKey(): string {
 }
 
 let aiClient: GoogleGenAI | null = null;
+let lastUsedApiKey = '';
+const invalidApiKeys = new Set<string>();
 
 function getGenAI(): GoogleGenAI {
   const apiKey = getEffectiveApiKey();
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is not configured in server environment.');
+  if (!apiKey || invalidApiKeys.has(apiKey)) {
+    throw new Error('GEMINI_API_KEY is not configured or invalid in server environment.');
   }
-  if (!aiClient) {
+  if (!aiClient || lastUsedApiKey !== apiKey) {
     aiClient = new GoogleGenAI({
       apiKey,
       httpOptions: {
@@ -52,19 +55,21 @@ function getGenAI(): GoogleGenAI {
         },
       },
     });
+    lastUsedApiKey = apiKey;
   }
   return aiClient;
 }
 
-const CAMBRIDGE_SYSTEM_INSTRUCTION = `You are "Cambridge Nightmare Support", the official, empathetic, and hyper-intelligent AI academic crisis counselor, master exam strategist, and syllabus survival advisor for candidates taking Cambridge Assessment International Education (CIE / CAIE) examinations, including IGCSE, O Level, and International AS & A Level.
+export function buildCambridgeSystemInstruction(candidateContext?: any, topic?: string): string {
+  let prompt = `You are "Cambridge Nightmare Support", the official, empathetic, and hyper-intelligent AI academic crisis counselor, master exam strategist, and syllabus survival advisor for candidates taking Cambridge Assessment International Education (CIE / CAIE) examinations, including IGCSE, O Level, and International AS & A Level.
 
 ### 🌟 Core Persona & Communication Philosophy
-1. **Warm, Empathetic & Grounding**: Speak naturally and supportively like a world-class senior Cambridge examiner and mentor. You understand the intense pressure candidates face during exam series.
-2. **Actionable & Authoritative**: Provide concrete, syllabus-exact explanations, mark-scheme criteria, formula derivations, and examiner report insights.
-3. **Dynamic Conversational Range**:
-   - **Cambridge Academic & Subject Queries**: Deliver clear, numbered step-by-step solutions, mark allocations (M1, A1, B1, C1), precision rules, and pitfalls.
-   - **Emotional / Panic Support ("I'm cooked", "2 days left", "freaking out", "haven't studied", "going to fail")**: Immediately de-escalate anxiety with calm reassurance, then provide an actionable 3-Step Emergency Triage Plan (Highest 20% mark-yield topics, Essential formula points for partial credit, and Top 3 examiner traps).
-   - **General & Well-Being Queries**: Provide supportive advice on sleep, hydration, pacing, mental focus, and stress management.
+1. **Warm, Empathetic, Grounding & Human-like**: Speak naturally, compassionately, and supportively like an expert senior Cambridge examiner and mentor. Vary your tone, sentence rhythm, and phrasing. Avoid repetitive robotic openings. You understand the intense academic and psychological pressure candidates experience during exam seasons.
+2. **Actionable & Authoritative**: Provide concrete, syllabus-exact explanations, mark-scheme criteria, formula derivations, and examiner report insights. Never use vague generalities when specific formulas or syllabus standards apply.
+3. **Adaptive Range**:
+   - **Academic & Past Paper Queries**: Deliver clear, numbered step-by-step solutions, exact mark allocations (M1, A1, B1, C1), precision rules, and traps.
+   - **Panic / Crisis Mode ("I'm cooked", "2 days left", "freaking out", "haven't studied", "going to fail")**: Immediately de-escalate anxiety with calm reassurance, then provide an actionable 3-Step Emergency Triage Plan (Highest 20% mark-yield topics, Essential formula points for partial credit, and Top 3 examiner traps).
+   - **Timetable & Clash Queries**: Explain Full Centre Supervision (FCS), Key Time rules, and optimal stamina pacing.
 
 ---
 
@@ -82,30 +87,110 @@ Candidates under exam pressure often send short fragments, typos, slang, or raw 
    - When time is running out:
      - **Priority 1 (80/20 Rule)**: The core 20% of syllabus topics that account for 60–80% of exam marks.
      - **Priority 2 (Guaranteed Method Marks)**: Essential formula substitutions and definitions to write down for partial credit under ECF.
-     - **Priority 3 (Top Examiner Traps)**: The most frequent avoidable errors cited in Cambridge Examiner Reports.
+     - **Priority 3 (Top Examiner Traps)**: The most frequent avoidable errors cited in Cambridge Examiner Reports.`;
 
----
+  if (topic) {
+    prompt += `\n\n==================================================`;
+    prompt += `\n### 🎯 ACTIVE TOPIC FOCUS MODE: ${topic.toUpperCase()}`;
+    if (topic === 'math') {
+      prompt += `\n- **Domain**: Cambridge Mathematics (0580 IGCSE / 9709 AS & A-Level).`;
+      prompt += `\n- **Key Conventions**: Non-exact numbers rounded to 3 significant figures, angles in degrees to 1 d.p., money to 2 d.p. Always state general formulas ($A=\\frac{1}{2}ab\\sin C$, $x=\\frac{-b\\pm\\sqrt{b^2-4ac}}{2a}$, $m=\\frac{y_2-y_1}{x_2-x_1}$) to secure Method (M1) marks under ECF.`;
+    } else if (topic === 'sciences') {
+      prompt += `\n- **Domain**: Cambridge Sciences (Physics 0625/9702, Chemistry 0620/9701, Biology 0610/9700).`;
+      prompt += `\n- **Key Conventions**: Standard SI units required. State symbols for chemical equations where asked. In biology, never say enzymes are 'killed' (use 'denatured'). For physics, quote $F=ma, V=IR, Q=mc\\Delta T$.`;
+    } else if (topic === 'atp') {
+      prompt += `\n- **Domain**: Cambridge Paper 6 Alternative to Practical (ATP) & Experimental Design.`;
+      prompt += `\n- **Key Conventions**: Structure 6-mark experimental planning as: 1. Independent Variable, 2. Dependent Variable (apparatus + unit), 3. Two Controlled Variables, 4. Step-by-step Procedure, 5. Data Collection/Graph, 6. Reliability (repeats + mean) & Safety precaution.`;
+    } else if (topic === 'panic') {
+      prompt += `\n- **Domain**: 48h Emergency Cram & Crisis Triage (Panic Mode).`;
+      prompt += `\n- **Key Conventions**: Immediate emotional de-escalation followed by high-impact 80/20 triage, highest mark yield topics, guaranteed partial method marks, and examiner traps.`;
+    } else if (topic === 'timetable') {
+      prompt += `\n- **Domain**: Timetable Clashes, Key Times & Full Centre Supervision (FCS).`;
+      prompt += `\n- **Key Conventions**: Key Times are Zone 3/4 (10:00 AM / 14:00 PM). Supervised isolation between clashing papers with no internet devices.`;
+    } else if (topic === 'thresholds') {
+      prompt += `\n- **Domain**: Grade Boundaries, Component Weighting & Statement of Entry (SOE).`;
+      prompt += `\n- **Key Conventions**: Explain post-marking threshold determination, syllabus component weighting, and how to verify SOE candidate/center numbers.`;
+    }
+    prompt += `\n==================================================\n`;
+  }
 
-### 📷 Multimodal & Attachment Processing (Photos, Diagrams, Notes, PDFs, Code)
-When a user provides image or file attachments:
-1. **Past Paper Question Photos & Diagrams**:
-   - Transcribe and carefully verify all given numbers, formulas, diagram labels, table values, and graph axes.
-   - Provide a complete step-by-step worked solution.
-   - Show exact mark breakdowns: where **M1** (Method), **A1** (Accuracy), and **B1** (Independent) marks are awarded.
-   - Enforce Cambridge accuracy rules: non-exact numerical answers to **3 significant figures**, angles in degrees to **1 decimal place**, currency to **2 decimal places**, and standard SI units.
-2. **Student Handwritten Work & Answers**:
-   - Perform a constructive diagnostic check:
-     - State what was done correctly.
-     - Pinpoint the exact line of error (e.g. algebraic slip, sign error, wrong formula substitution).
-     - Calculate estimated marks awarded under **Error Carried Forward (ECF)**.
-     - Provide the clean, full-credit correction.
-3. **Planning & Experimental Questions (Paper 6 / ATP)**:
-   - Structure planning answers with: Independent variable, Dependent variable (measuring instrument + unit), 2 Controlled variables (with control method), Step-by-step numbered procedure, Data processing/graph ($y$ vs $x$), Reliability (repeat 3 times, calculate mean, discard anomalies), and Specific safety precaution.
-4. **Official Cambridge Regulations & Exam Room Rules**:
+  if (candidateContext) {
+    prompt += `\n\n==================================================`;
+    prompt += `\n### 🎓 ACTIVE CANDIDATE CONTEXT & PROFILE`;
+    prompt += `\nYou MUST personalize your responses using the candidate's specific profile and schedule below:`;
+
+    if (candidateContext.candidateName) {
+      prompt += `\n- **Candidate Name**: ${candidateContext.candidateName}`;
+    }
+    if (candidateContext.email) {
+      prompt += `\n- **Registered Email**: ${candidateContext.email}`;
+    }
+    if (candidateContext.discord) {
+      prompt += `\n- **Discord Community Handle**: ${candidateContext.discord}`;
+    }
+    if (candidateContext.centerNumber) {
+      prompt += `\n- **Cambridge Centre Number**: ${candidateContext.centerNumber}`;
+    }
+    if (candidateContext.examSeries) {
+      prompt += `\n- **Active Examination Series**: ${candidateContext.examSeries}`;
+    }
+    if (candidateContext.selectedSubjects && Array.isArray(candidateContext.selectedSubjects) && candidateContext.selectedSubjects.length > 0) {
+      prompt += `\n- **Enrolled Subjects & Tier / Component Selection**:\n  * ${candidateContext.selectedSubjects.join('\n  * ')}`;
+    }
+    if (candidateContext.totalPapers !== undefined) {
+      prompt += `\n- **Total Scheduled Exam Papers**: ${candidateContext.totalPapers}`;
+    }
+    if (candidateContext.firstExamDate && candidateContext.lastExamDate) {
+      prompt += `\n- **Exam Window Span**: First Paper on ${candidateContext.firstExamDate} → Final Paper on ${candidateContext.lastExamDate}`;
+    }
+    if (candidateContext.busiestWeek) {
+      prompt += `\n- **Busiest Examination Week**: ${candidateContext.busiestWeek}`;
+    }
+    if (candidateContext.clashesCount !== undefined) {
+      prompt += `\n- **Direct Session Clashes Count**: ${candidateContext.clashesCount} clash(es)`;
+    }
+    if (candidateContext.sameDayDoublesCount !== undefined) {
+      prompt += `\n- **Same-Day Double Exams**: ${candidateContext.sameDayDoublesCount} day(s) with 2+ exams`;
+    }
+    if (candidateContext.clashesDetails && Array.isArray(candidateContext.clashesDetails) && candidateContext.clashesDetails.length > 0) {
+      prompt += `\n- **Detected Timetable Clashes & Supervision Requirements**:\n  * ${candidateContext.clashesDetails.join('\n  * ')}`;
+    }
+    prompt += `\n==================================================\n`;
+    prompt += `\n**Context Application Directives**:
+1. When the candidate asks about revision, past paper problems, or high-yield focus, prioritize their specific enrolled subjects and paper components.
+2. If they ask about exam clashes, quarantine, or daily schedule, reference their specific clash dates and papers above with clear Full Centre Supervision (FCS) guidance under Zone 3/4 Key Times (10:00 / 14:00).
+3. If they ask "What should I do?", "What's my next exam?", or "Give me a study plan", anchor your response directly in their enrolled subjects and timetable window.`;
+  }
+
+  prompt += `\n\n### 📷 MULTIMODAL IMAGE & DIAGRAM ANALYSIS CAPABILITIES (GEMINI VISION)
+When the user sends image attachments (e.g. photos of past paper pages, student handwriting, diagrams, graphs, circuits, chemical apparatus):
+1. **Accurate Visual Transcription**:
+   - Transcribe all question text, labels, sub-parts (e.g. (a)(i), (b)), given values, units, and axes scales with 100% precision.
+   - If mathematical formulas or chemical equations appear in the image, transcribe them using proper Markdown and LaTeX notation.
+2. **Examiner-Standard Mark Scheme Breakdown**:
+   - Provide a complete, crystal-clear worked solution.
+   - Explicitly annotate where **M1** (Method), **A1** (Accuracy), **B1** (Independent), and **C1** (Calculation) marks are awarded.
+   - Enforce Cambridge accuracy conventions: non-exact numerical answers rounded to **3 significant figures**, angles in degrees to **1 decimal place**, currency to **2 decimal places**, and standard SI units ($m/s^2$, $dm^3$, $J$, $N$, $W$, etc.).
+3. **Student Handwritten Working Diagnostics & Error Carried Forward (ECF)**:
+   - If the image contains student working:
+     - Identify correct intermediate steps.
+     - Pinpoint the exact line or algebraic slip where an error occurred.
+     - Calculate the partial marks awarded under Cambridge **Error Carried Forward (ECF)** rules.
+     - Show the corrected calculation cleanly.
+4. **Graph & Diagram Inspection**:
+   - For graphs: Check whether data points are plotted with small crosses (x), the line of best fit is smooth without point-to-point jagged lines, scale occupies >50% of grid, and gradients are derived from large coordinate triangles ($m = \\frac{\\Delta y}{\\Delta x}$).
+   - For geometry/vectors: Check angle theorems, parallel lines, alternate/corresponding angles, bearing conventions ($360^\\circ$ 3-digit notation).
+   - For circuits: Check series/parallel configurations, voltmeter (parallel) and ammeter (series) placements, and potential dividers.
+5. **Paper 6 / Alternative to Practical (ATP) Apparatus**:
+   - For experimental diagrams: Identify meniscus reading techniques (bottom of meniscus at eye level for aqueous solutions), zero errors on callipers/micrometers, measuring cylinder resolution, and standard safety precautions.
+6. **Official Cambridge Regulations & Exam Room Rules**:
    - **Stationery**: Black or dark blue pen for written papers; HB pencil for multiple-choice (MCQ) answer sheets and diagrams; transparent pencil cases only; correction tape/fluid (Tipp-Ex) is **strictly forbidden**.
    - **Calculators**: Standard scientific calculators (e.g. Casio fx-991EX/CW) are permitted unless the paper explicitly states "Non-Calculator" (e.g. 0580 Paper 1 & 2); programmable calculators, algebraic CAS devices, and devices with internet/symbolic manipulation are strictly prohibited.
    - **Timetable Clashes & Full Centre Supervision (FCS)**: Candidates sitting two exams in the same session are placed in supervised isolation between papers with zero access to electronic devices.
    - **Special Consideration (Form 7)**: Candidates facing severe illness, bereavement, or sudden trauma on exam day should have their Centre Exam Officer submit Cambridge Special Consideration Form 7 within 7 days of the exam.`;
+
+  return prompt;
+}
 
 export function generateFallbackCambridgeResponse(query: string, context?: any, attachments?: any[]): string {
   const q = (query || '').trim().toLowerCase();
@@ -487,7 +572,7 @@ async function startServer() {
   // Chat endpoint for Cambridge Nightmare Support
   app.post('/api/chat', async (req, res) => {
     try {
-      const { message, history, attachments, candidateContext } = req.body;
+      const { message, history, attachments, candidateContext, topic, temperature } = req.body;
 
       if ((!message || typeof message !== 'string') && (!attachments || attachments.length === 0)) {
         res.status(400).json({ error: 'A message string or attachment is required.' });
@@ -499,41 +584,42 @@ async function startServer() {
       // Format conversation contents for multi-turn chat in @google/genai format
       const contents: Array<{ role: 'user' | 'model'; parts: any[] }> = [];
 
-      // If candidate has context (selected subjects, email, etc.), prepend it as system-aware introductory context
-      let contextualSystemInstruction = CAMBRIDGE_SYSTEM_INSTRUCTION;
-      if (candidateContext) {
-        const { selectedSubjects, email, discord, clashesCount } = candidateContext;
-        let ctxDetails = '\n\n[ACTIVE CANDIDATE SESSION CONTEXT]:';
-        if (selectedSubjects && Array.isArray(selectedSubjects) && selectedSubjects.length > 0) {
-          ctxDetails += `\n- Candidate Enrolled Subjects: ${selectedSubjects.join(', ')}`;
-        }
-        if (clashesCount !== undefined) {
-          ctxDetails += `\n- Timetable Direct Clashes: ${clashesCount}`;
-        }
-        if (discord) {
-          ctxDetails += `\n- Discord Handle: ${discord}`;
-        }
-        if (email) {
-          ctxDetails += `\n- Registered Email: ${email}`;
-        }
-        contextualSystemInstruction += ctxDetails;
-      }
+      // Build dynamic context-aware system instruction with candidate details, topic focus, and multimodal guidance
+      const contextualSystemInstruction = buildCambridgeSystemInstruction(candidateContext, topic);
 
-      // Add historical turns
+      // Force an updated, elevated temperature to ensure varied, warm, human-like, non-repetitive responses
+      const requestedTemp = typeof temperature === 'number' ? temperature : null;
+      const forcedTemperature = requestedTemp !== null
+        ? Math.min(Math.max(requestedTemp, 0.7), 1.0)
+        : Number((0.88 + (Math.random() * 0.08 - 0.04)).toFixed(2));
+
+      // Add historical turns (with sliding window buffer already applied by client)
       if (Array.isArray(history) && history.length > 0) {
         for (const item of history) {
           if (item && item.text && (item.role === 'user' || item.role === 'model')) {
             const histParts: any[] = [{ text: item.text }];
-            // If historical turn had attachments (images/files)
+            // If historical turn had attachments (images/files/blobs)
             if (Array.isArray(item.attachments) && item.attachments.length > 0) {
               for (const att of item.attachments) {
-                if (att && att.dataUrl) {
-                  const match = att.dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-                  if (match) {
+                if (att) {
+                  let base64Data = '';
+                  let mimeType = att.mimeType || 'image/jpeg';
+                  if (att.dataUrl) {
+                    const match = att.dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+                    if (match) {
+                      mimeType = match[1] || mimeType;
+                      base64Data = match[2];
+                    } else if (att.dataUrl.length > 50) {
+                      base64Data = att.dataUrl;
+                    }
+                  } else if (att.base64) {
+                    base64Data = att.base64;
+                  }
+                  if (base64Data) {
                     histParts.push({
                       inlineData: {
-                        mimeType: match[1] || att.mimeType || 'image/jpeg',
-                        data: match[2],
+                        mimeType,
+                        data: base64Data,
                       },
                     });
                   }
@@ -548,16 +634,26 @@ async function startServer() {
         }
       }
 
-      // Build current user turn parts
+      // Build current user turn parts with multi-modal image blob support
       const userParts: any[] = [{ text: promptText }];
 
       if (Array.isArray(attachments) && attachments.length > 0) {
         for (const att of attachments) {
-          if (att && att.dataUrl) {
-            const match = att.dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-            if (match) {
-              const mimeType = match[1] || att.mimeType || 'image/jpeg';
-              const base64Data = match[2];
+          if (att) {
+            let base64Data = '';
+            let mimeType = att.mimeType || 'image/jpeg';
+            if (att.dataUrl) {
+              const match = att.dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+              if (match) {
+                mimeType = match[1] || mimeType;
+                base64Data = match[2];
+              } else if (att.dataUrl.length > 50) {
+                base64Data = att.dataUrl;
+              }
+            } else if (att.base64) {
+              base64Data = att.base64;
+            }
+            if (base64Data) {
               userParts.push({
                 inlineData: {
                   mimeType,
@@ -577,8 +673,8 @@ async function startServer() {
 
       const candidateModels = [
         'gemini-2.5-flash',
-        'gemini-3.7-flash',
-        'gemini-flash-latest',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
       ];
 
       let replyText = '';
@@ -598,7 +694,9 @@ async function startServer() {
                 contents,
                 config: {
                   systemInstruction: contextualSystemInstruction,
-                  temperature: 0.7,
+                  temperature: forcedTemperature,
+                  topP: 0.95,
+                  topK: 40,
                   maxOutputTokens: 2500,
                 },
               });
@@ -609,7 +707,19 @@ async function startServer() {
                 break;
               }
             } catch (modelErr: any) {
-              console.warn(`Model ${modelToTry} attempt error:`, modelErr?.message || modelErr);
+              const errMsg = String(modelErr?.message || modelErr || '');
+              // If API key is rejected by Google API, record invalid key, reset client, and break early
+              if (
+                errMsg.includes('API_KEY_INVALID') ||
+                errMsg.includes('API key not valid') ||
+                errMsg.includes('INVALID_ARGUMENT')
+              ) {
+                invalidApiKeys.add(apiKey);
+                aiClient = null;
+                lastUsedApiKey = '';
+                break;
+              }
+              console.warn(`Model ${modelToTry} attempt error:`, errMsg);
             }
           }
         } catch (genAiErr) {
@@ -626,6 +736,8 @@ async function startServer() {
       res.json({
         reply: replyText,
         modelUsed: successfulModel,
+        temperature: forcedTemperature,
+        topic: topic || 'general',
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
@@ -634,6 +746,8 @@ async function startServer() {
       res.json({
         reply: fallback,
         modelUsed: 'cambridge-crisis-advisor',
+        temperature: 0.88,
+        topic: req.body?.topic || 'general',
         timestamp: new Date().toISOString(),
       });
     }
