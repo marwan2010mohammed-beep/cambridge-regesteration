@@ -3,14 +3,29 @@ import autoTable from 'jspdf-autotable';
 import { CandidateEnrollment, ExamSubject, ScheduledExamPaper } from '../types';
 import { getScheduledPapersForSubject, generateTimetableSummary } from '../data/examSchedule';
 
+async function getBase64ImageFromUrl(imageUrl: string): Promise<string> {
+  const res = await fetch(imageUrl);
+  const blob = await res.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener('load', () => {
+      resolve(reader.result as string);
+    });
+    reader.addEventListener('error', () => {
+      reject(new Error('Failed to read image blob'));
+    });
+    reader.readAsDataURL(blob);
+  });
+}
+
 /**
  * Generate and download an official Cambridge Assessment International Education
  * Statement of Entry & Registration Receipt PDF for an enrolled candidate.
  */
-export function generateStatementOfEntryPDF(
+export async function generateStatementOfEntryPDF(
   enrollment: CandidateEnrollment,
   fullSubjectsList?: ExamSubject[]
-): void {
+): Promise<void> {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -342,6 +357,54 @@ export function generateStatementOfEntryPDF(
   doc.line(margin, curY, pageWidth - margin, curY);
 
   curY += 5;
+
+  // Draw QR code visually centered
+  const enrollmentLink = `${window.location.origin}${window.location.pathname}?email=${encodeURIComponent(enrollment.email)}`;
+  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(enrollmentLink)}`;
+  
+  const qrSize = 22;
+  const qrX = pageWidth / 2 - qrSize / 2;
+  const qrY = curY;
+
+  try {
+    const base64Qr = await getBase64ImageFromUrl(qrApiUrl);
+    doc.addImage(base64Qr, 'PNG', qrX, qrY, qrSize, qrSize);
+    
+    // Draw a neat border around the QR Code
+    doc.setDrawColor(accentBlue[0], accentBlue[1], accentBlue[2]);
+    doc.setLineWidth(0.25);
+    doc.rect(qrX - 0.5, qrY - 0.5, qrSize + 1, qrSize + 1);
+  } catch (err) {
+    console.warn('Could not generate live QR code for PDF, drawing beautiful placeholder instead:', err);
+    // Draw a neat dashed placeholder box
+    doc.setDrawColor(textMuted[0], textMuted[1], textMuted[2]);
+    doc.setLineWidth(0.2);
+    if (typeof (doc as any).setLineDash === 'function') {
+      (doc as any).setLineDash([1, 1]);
+    }
+    doc.rect(qrX, qrY, qrSize, qrSize);
+    if (typeof (doc as any).setLineDash === 'function') {
+      (doc as any).setLineDash([]); // Reset
+    }
+    
+    doc.setFontSize(5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+    doc.text('[SOE QR CODE]', qrX + qrSize / 2, qrY + qrSize / 2 - 1, { align: 'center' });
+    doc.text('Scan to login', qrX + qrSize / 2, qrY + qrSize / 2 + 2, { align: 'center' });
+  }
+
+  // Draw QR code labels under the barcode image
+  doc.setFontSize(5.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(accentBlue[0], accentBlue[1], accentBlue[2]);
+  doc.text('SCAN TO AUTO-IMPORT', pageWidth / 2, qrY + qrSize + 3.5, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(5);
+  doc.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+  doc.text('CANDIDATE ENTRY STATUS', pageWidth / 2, qrY + qrSize + 5.5, { align: 'center' });
+
+  // Draw Officer and Candidate Signatures on either side of the QR Code
   doc.setFontSize(6.8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(textDark[0], textDark[1], textDark[2]);

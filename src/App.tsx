@@ -19,7 +19,8 @@ import { CambridgeCarouselTestimonials } from './components/CambridgeCarouselTes
 import { RolodexText } from './components/RolodexText';
 import { ShinyText } from './components/ShinyText';
 import { OversizedClippedHeading } from './components/OversizedClippedHeading';
-import { MessageSquare, Mail, ShieldAlert, CheckCircle2, Copy, Check, BookOpen, Search, X, Plus, Layers, ExternalLink, ArrowUpRight, Radio, Users, Calendar, AlertTriangle, Clock, FileText, Download, FileCheck, ShieldCheck, Bot, Sparkles } from 'lucide-react';
+import { QRScanner } from './components/QRScanner';
+import { MessageSquare, Mail, ShieldAlert, CheckCircle2, Copy, Check, BookOpen, Search, X, Plus, Layers, ExternalLink, ArrowUpRight, Radio, Users, Calendar, AlertTriangle, Clock, FileText, Download, FileCheck, ShieldCheck, Bot, Sparkles, ScanLine } from 'lucide-react';
 
 const AdminRegistryModal = lazy(() => import('./components/AdminRegistryModal'));
 const SubjectCatalogModal = lazy(() => import('./components/SubjectCatalogModal'));
@@ -157,7 +158,9 @@ export default function App() {
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [lastEnrolledRecord, setLastEnrolledRecord] = useState<CandidateEnrollment | null>(null);
   const [copiedDiscord, setCopiedDiscord] = useState(false);
+  const [copiedEnrollment, setCopiedEnrollment] = useState(false);
   const [pdfDownloaded, setPdfDownloaded] = useState(false);
+  const [isScanningQR, setIsScanningQR] = useState(false);
 
   // Live input touch / interaction state for validation styling
   const [emailTouched, setEmailTouched] = useState(false);
@@ -338,6 +341,21 @@ export default function App() {
       }, 60);
     }
   }, [activeModal]);
+
+  // Check for candidate email parameter on mount to load their portal automatically
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const emailParam = urlParams.get('email');
+    if (emailParam) {
+      const decodedEmail = decodeURIComponent(emailParam).trim();
+      setEmail(decodedEmail);
+      setActiveModal('portal');
+      
+      // Clean up parameter gracefully to keep clean URLs
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }, []);
 
   // Scroll-triggered animations observer
   useEffect(() => {
@@ -647,6 +665,65 @@ export default function App() {
     navigator.clipboard.writeText(DISCORD_INVITE_URL);
     setCopiedDiscord(true);
     setTimeout(() => setCopiedDiscord(false), 2200);
+  };
+
+  const handleDoneClick = () => {
+    if (lastEnrolledRecord && lastEnrolledRecord.email) {
+      const enrollmentLink = `${window.location.origin}${window.location.pathname}?email=${encodeURIComponent(lastEnrolledRecord.email)}`;
+      navigator.clipboard.writeText(enrollmentLink)
+        .then(() => {
+          setCopiedEnrollment(true);
+          setTimeout(() => setCopiedEnrollment(false), 3500);
+        })
+        .catch((err) => {
+          console.error('Failed to copy enrollment link to clipboard:', err);
+        });
+    }
+    setActiveModal(null);
+  };
+
+  const handleQRScanSuccess = (scannedData: string) => {
+    setIsScanningQR(false);
+    
+    let scannedEmail = '';
+    
+    // Check if it's a URL with our email parameter
+    if (scannedData.includes('email=')) {
+      try {
+        const urlParams = new URLSearchParams(scannedData.substring(scannedData.indexOf('?')));
+        scannedEmail = urlParams.get('email') || '';
+      } catch (e) {
+        console.error('Failed to parse scanned URL params:', e);
+      }
+    }
+    
+    // If not found, try to extract any email address from the scanned string
+    if (!scannedEmail) {
+      const emailMatch = scannedData.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+      if (emailMatch) {
+        scannedEmail = emailMatch[0];
+      }
+    }
+    
+    if (scannedEmail) {
+      const trimmedEmail = scannedEmail.trim();
+      setEmail(trimmedEmail);
+      
+      const hasRecord = enrollments.some(
+        (rec) => rec.email.toLowerCase() === trimmedEmail.toLowerCase()
+      );
+      
+      if (hasRecord) {
+        setCopiedEnrollment(true);
+        setTimeout(() => setCopiedEnrollment(false), 3000);
+      } else {
+        setFeedbackMessage(`Decoded email "${trimmedEmail}", but no active Cambridge Oct/Nov registration is logged in this local roster. Please make sure you submit a registration first.`);
+        setActiveModal('error');
+      }
+    } else {
+      setFeedbackMessage("We scanned the document but could not find a valid Cambridge registration QR code or email reference.");
+      setActiveModal('error');
+    }
   };
 
   const handleUpdateStatus = (id: string, newStatus: CandidateEnrollment['status']) => {
@@ -3179,7 +3256,7 @@ export default function App() {
                     variant="ghost"
                     size="sm"
                     style={{ flex: '0 0 70px' }}
-                    onClick={() => setActiveModal(null)}
+                    onClick={handleDoneClick}
                   >
                     Done
                   </UiverseButton>
@@ -3189,7 +3266,16 @@ export default function App() {
 
             {/* Modal Body: Candidate Portal Lookup */}
             {activeModal === 'portal' && (
-              <div>
+              <div style={{ position: 'relative', minHeight: '220px' }}>
+                <AnimatePresence>
+                  {isScanningQR && (
+                    <QRScanner
+                      onScanSuccess={handleQRScanSuccess}
+                      onClose={() => setIsScanningQR(false)}
+                    />
+                  )}
+                </AnimatePresence>
+
                 {(() => {
                   const matchedRecord = enrollments.find(
                     (rec) => rec.email.toLowerCase() === email.trim().toLowerCase()
@@ -3314,12 +3400,12 @@ export default function App() {
                           )}
                         </div>
 
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                           <UiverseButton
                             type="button"
                             variant="cyan"
                             size="sm"
-                            style={{ flex: 1 }}
+                            style={{ flex: '1 1 180px' }}
                             onClick={() => setActiveModal('timetable')}
                             icon={<Calendar size={13} />}
                           >
@@ -3327,8 +3413,24 @@ export default function App() {
                           </UiverseButton>
                           <UiverseButton
                             type="button"
+                            variant="cyan"
+                            size="sm"
+                            style={{ 
+                              flex: '1 1 140px',
+                              background: 'rgba(163, 230, 53, 0.1)',
+                              border: '1px solid rgba(163, 230, 53, 0.4)',
+                              color: '#fff'
+                            }}
+                            onClick={() => setIsScanningQR(true)}
+                            icon={<ScanLine size={13} color="#a3e635" />}
+                          >
+                            Scan Another SOE
+                          </UiverseButton>
+                          <UiverseButton
+                            type="button"
                             variant="ghost"
                             size="sm"
+                            style={{ flex: '0 0 70px' }}
                             onClick={() => setActiveModal(null)}
                           >
                             Done
@@ -3371,29 +3473,46 @@ export default function App() {
                         </ul>
                       </div>
 
-                      <div style={{ display: 'flex', gap: '10px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
                         <UiverseButton
                           type="button"
                           variant="cyan"
                           size="sm"
-                          style={{ flex: 1 }}
-                          onClick={() => {
-                            setActiveModal(null);
-                            // Auto focus the email field to help the user
-                            const emailInput = document.getElementById('candidate-email') as HTMLInputElement;
-                            emailInput?.focus();
+                          onClick={() => setIsScanningQR(true)}
+                          icon={<ScanLine size={14} color="#a3e635" />}
+                          style={{
+                            background: 'rgba(163, 230, 53, 0.1)',
+                            border: '1px solid rgba(163, 230, 53, 0.4)',
+                            color: '#ffffff'
                           }}
                         >
-                          Correct Email / Register Now
+                          Scan Statement of Entry QR Code
                         </UiverseButton>
-                        <UiverseButton
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setActiveModal(null)}
-                        >
-                          Close
-                        </UiverseButton>
+
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                          <UiverseButton
+                            type="button"
+                            variant="cyan"
+                            size="sm"
+                            style={{ flex: 1 }}
+                            onClick={() => {
+                              setActiveModal(null);
+                              // Auto focus the email field to help the user
+                              const emailInput = document.getElementById('candidate-email') as HTMLInputElement;
+                              emailInput?.focus();
+                            }}
+                          >
+                            Correct Email / Register Now
+                          </UiverseButton>
+                          <UiverseButton
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setActiveModal(null)}
+                          >
+                            Close
+                          </UiverseButton>
+                        </div>
                       </div>
                     </div>
                   );
@@ -3441,6 +3560,38 @@ export default function App() {
           onClose={() => setActiveModal(null)}
         />
       </Suspense>
+
+      {/* Clipboard Copy Success Toast Notification */}
+      <AnimatePresence>
+        {copiedEnrollment && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            style={{
+              position: 'fixed',
+              bottom: '90px',
+              right: '24px',
+              background: 'rgba(9, 14, 36, 0.95)',
+              border: '1px solid #a3e635',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(163, 230, 53, 0.25)',
+              borderRadius: '8px',
+              padding: '12px 20px',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '12px',
+              color: '#ffffff',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+            }}
+          >
+            <CheckCircle2 size={16} color="#a3e635" />
+            <span>Enrollment link copied to clipboard!</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Floating Cambridge Nightmare Support AI Desk Button */}
       <div
