@@ -2536,14 +2536,63 @@ nav {
   display: inline-block;
 }
 
-/* Scroll-triggered Animations */
+/* Scroll-triggered Animations & Premium Easing */
 .animate-on-scroll {
   opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  will-change: transform, opacity, filter;
+  transition: opacity 1.1s cubic-bezier(0.16, 1, 0.3, 1), 
+              transform 1.1s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 1.1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.animate-on-scroll.is-visible {
+/* Specific Premium Variations */
+.scroll-fade-up {
+  transform: translateY(30px);
+}
+.scroll-fade-up.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.scroll-scale-up {
+  transform: scale(0.96) translateY(15px);
+}
+.scroll-scale-up.is-visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.scroll-slide-left {
+  transform: translateX(-40px);
+}
+.scroll-slide-left.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.scroll-slide-right {
+  transform: translateX(40px);
+}
+.scroll-slide-right.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.scroll-blur-in {
+  filter: blur(6px);
+  transform: translateY(10px);
+}
+.scroll-blur-in.is-visible {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+}
+
+/* Standard Fallback */
+.animate-on-scroll:not(.scroll-fade-up):not(.scroll-scale-up):not(.scroll-slide-left):not(.scroll-slide-right):not(.scroll-blur-in) {
+  transform: translateY(20px);
+}
+.animate-on-scroll:not(.scroll-fade-up):not(.scroll-scale-up):not(.scroll-slide-left):not(.scroll-slide-right):not(.scroll-blur-in).is-visible {
   opacity: 1;
   transform: translateY(0);
 }
@@ -2551,14 +2600,24 @@ nav {
 .header-anim {
   opacity: 0;
   transform: translateY(-40px);
-  transition: opacity 0.4s, transform 0.4s;
-  transition-delay: 0.3s;
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: 0.25s;
 }
 
 .header-anim.is-visible {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* Staggered Delay Utilities */
+.delay-100 { transition-delay: 100ms !important; }
+.delay-200 { transition-delay: 200ms !important; }
+.delay-300 { transition-delay: 300ms !important; }
+.delay-400 { transition-delay: 400ms !important; }
+.delay-500 { transition-delay: 500ms !important; }
+.delay-600 { transition-delay: 600ms !important; }
+.delay-700 { transition-delay: 700ms !important; }
+.delay-800 { transition-delay: 800ms !important; }
 
 /* Staggered animation for title words */
 .animate-child {

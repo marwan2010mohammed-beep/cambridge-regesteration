@@ -2055,7 +2055,7 @@ export default function App() {
       </div>
 
       {/* Left-Side Floating Discord Server Badge & Hub */}
-      <aside className="discord-side-card" aria-label="Official Discord Community">
+      <aside className="discord-side-card animate-on-scroll scroll-slide-left" aria-label="Official Discord Community">
         <div className="discord-side-badge">
           <ShinyText text="[ IGCSE DISCORD HUB ]" color="#60a5fa" shineColor="#ffffff" speed={2.5} />
           <div className="discord-side-status">
@@ -2106,16 +2106,22 @@ export default function App() {
       </aside>
 
       {/* Interactive FAQ Section */}
-      <FAQSection
-        onOpenNightmareSupport={() => setActiveModal('nightmare')}
-        onOpenSubjectCatalog={() => setActiveModal('papers')}
-      />
+      <div className="animate-on-scroll scroll-fade-up">
+        <FAQSection
+          onOpenNightmareSupport={() => setActiveModal('nightmare')}
+          onOpenSubjectCatalog={() => setActiveModal('papers')}
+        />
+      </div>
 
       {/* Cambridge Nightmare Testimonials Vertical Drift Section */}
-      <CambridgeTestimonialsSection />
+      <div className="animate-on-scroll scroll-blur-in">
+        <CambridgeTestimonialsSection />
+      </div>
 
       {/* Cambridge Carousel Testimonials dot pagination section */}
-      <CambridgeCarouselTestimonials />
+      <div className="animate-on-scroll scroll-scale-up">
+        <CambridgeCarouselTestimonials />
+      </div>
 
       {/* Site Footer */}
       <footer role="contentinfo" className="site-footer">
