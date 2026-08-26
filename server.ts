@@ -41,10 +41,10 @@ let aiClient: GoogleGenAI | null = null;
 let lastUsedApiKey = '';
 const invalidApiKeys = new Set<string>();
 
-function getGenAI(): GoogleGenAI {
+function getGenAI(): GoogleGenAI | null {
   const apiKey = getEffectiveApiKey();
   if (!apiKey || invalidApiKeys.has(apiKey)) {
-    throw new Error('GEMINI_API_KEY is not configured or invalid in server environment.');
+    return null;
   }
   if (!aiClient || lastUsedApiKey !== apiKey) {
     aiClient = new GoogleGenAI({
@@ -686,44 +686,45 @@ async function startServer() {
       if (apiKey) {
         try {
           const ai = getGenAI();
+          if (ai) {
+            for (const modelToTry of candidateModels) {
+              try {
+                const response = await ai.models.generateContent({
+                  model: modelToTry,
+                  contents,
+                  config: {
+                    systemInstruction: contextualSystemInstruction,
+                    temperature: forcedTemperature,
+                    topP: 0.95,
+                    topK: 40,
+                    maxOutputTokens: 2500,
+                  },
+                });
 
-          for (const modelToTry of candidateModels) {
-            try {
-              const response = await ai.models.generateContent({
-                model: modelToTry,
-                contents,
-                config: {
-                  systemInstruction: contextualSystemInstruction,
-                  temperature: forcedTemperature,
-                  topP: 0.95,
-                  topK: 40,
-                  maxOutputTokens: 2500,
-                },
-              });
-
-              if (response && response.text) {
-                replyText = response.text;
-                successfulModel = modelToTry;
-                break;
+                if (response && response.text) {
+                  replyText = response.text;
+                  successfulModel = modelToTry;
+                  break;
+                }
+              } catch (modelErr: any) {
+                const errMsg = String(modelErr?.message || modelErr || '');
+                // If API key is rejected by Google API, record invalid key, reset client, and break early
+                if (
+                  errMsg.includes('API_KEY_INVALID') ||
+                  errMsg.includes('API key not valid') ||
+                  errMsg.includes('INVALID_ARGUMENT')
+                ) {
+                  invalidApiKeys.add(apiKey);
+                  aiClient = null;
+                  lastUsedApiKey = '';
+                  break;
+                }
+                console.info(`Model ${modelToTry} fallback attempt: ${errMsg}`);
               }
-            } catch (modelErr: any) {
-              const errMsg = String(modelErr?.message || modelErr || '');
-              // If API key is rejected by Google API, record invalid key, reset client, and break early
-              if (
-                errMsg.includes('API_KEY_INVALID') ||
-                errMsg.includes('API key not valid') ||
-                errMsg.includes('INVALID_ARGUMENT')
-              ) {
-                invalidApiKeys.add(apiKey);
-                aiClient = null;
-                lastUsedApiKey = '';
-                break;
-              }
-              console.warn(`Model ${modelToTry} attempt error:`, errMsg);
             }
           }
         } catch (genAiErr) {
-          console.warn('GenAI execution error:', genAiErr);
+          console.info('GenAI offline/fallback routing.');
         }
       }
 
