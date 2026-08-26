@@ -409,6 +409,7 @@ export default function App() {
           selectedPapers: [],
         }))
       );
+      setPdfDownloaded(false);
       setWizardStep(1);
     }, 1200);
   };
@@ -2949,24 +2950,45 @@ export default function App() {
                         <UiverseLoader label="Compiling Statement of Entry PDF..." size="sm" />
                       </div>
                     ) : (
-                      <UiverseButton
-                        type="button"
-                        variant={pdfDownloaded ? 'emerald' : 'cyan'}
-                        size="sm"
-                        onClick={() => {
-                          setIsGeneratingPDF(true);
-                          setTimeout(async () => {
-                            const { generateStatementOfEntryPDF } = await import('./utils/pdfGenerator');
-                            generateStatementOfEntryPDF(lastEnrolledRecord, subjects);
-                            setPdfDownloaded(true);
-                            setIsGeneratingPDF(false);
-                          }, 750);
-                        }}
-                        icon={pdfDownloaded ? <FileCheck size={15} /> : <Download size={15} />}
-                        title="Download official Cambridge Statement of Entry PDF for your records"
+                      <motion.div
+                        id="statement-of-entry-btn-wrapper"
+                        initial={false}
+                        animate={
+                          pdfDownloaded
+                            ? {
+                                scale: [1, 1.08, 0.95, 1.02, 1],
+                                transition: {
+                                  duration: 0.5,
+                                  times: [0, 0.3, 0.6, 0.8, 1],
+                                  ease: 'easeOut',
+                                },
+                              }
+                            : { scale: 1 }
+                        }
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.97 }}
+                        style={{ display: 'inline-block' }}
                       >
-                        {pdfDownloaded ? 'PDF Downloaded (Download Again)' : 'Download Statement of Entry (PDF)'}
-                      </UiverseButton>
+                        <UiverseButton
+                          id="btn-download-statement-of-entry"
+                          type="button"
+                          variant={pdfDownloaded ? 'emerald' : 'cyan'}
+                          size="sm"
+                          onClick={() => {
+                            setIsGeneratingPDF(true);
+                            setTimeout(async () => {
+                              const { generateStatementOfEntryPDF } = await import('./utils/pdfGenerator');
+                              generateStatementOfEntryPDF(lastEnrolledRecord, subjects);
+                              setPdfDownloaded(true);
+                              setIsGeneratingPDF(false);
+                            }, 750);
+                          }}
+                          icon={pdfDownloaded ? <FileCheck size={15} /> : <Download size={15} />}
+                          title="Download official Cambridge Statement of Entry PDF for your records"
+                        >
+                          {pdfDownloaded ? '✓ Statement of Entry Downloaded (Download Again)' : 'Download Statement of Entry (PDF)'}
+                        </UiverseButton>
+                      </motion.div>
                     )}
                   </div>
                 )}
@@ -3257,21 +3279,19 @@ export default function App() {
       )}
 
       {/* Cambridge Nightmare Support Multi-Turn Chatbot Modal */}
-      {activeModal === 'nightmare' && (
-        <Suspense fallback={null}>
-          <CambridgeNightmareSupportModal
-            isOpen={true}
-            onClose={() => setActiveModal(null)}
-            candidateContext={{
-              selectedSubjects: subjects.filter((s) => s.selected).map((s) => `${s.code} ${s.name} (${s.tier})`),
-              email: email || undefined,
-              discord: discord || undefined,
-              candidateName: candidateName || undefined,
-              clashesCount: timetableSummary.directClashesCount,
-            }}
-          />
-        </Suspense>
-      )}
+      <Suspense fallback={null}>
+        <CambridgeNightmareSupportModal
+          isOpen={activeModal === 'nightmare'}
+          onClose={() => setActiveModal(null)}
+          candidateContext={{
+            selectedSubjects: subjects.filter((s) => s.selected).map((s) => `${s.code} ${s.name} (${s.tier})`),
+            email: email || undefined,
+            discord: discord || undefined,
+            candidateName: candidateName || undefined,
+            clashesCount: timetableSummary.directClashesCount,
+          }}
+        />
+      </Suspense>
 
       {/* Calendar Component Showcase Modal */}
       <Suspense fallback={null}>

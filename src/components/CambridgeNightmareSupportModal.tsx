@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Markdown from 'react-markdown';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Bot,
   User,
@@ -27,9 +27,17 @@ import {
   UploadCloud,
   Eye,
   ZoomIn,
+  Download,
+  FileDown,
+  Printer,
 } from 'lucide-react';
 import { ChatMessage, CandidateChatContext, ChatAttachment } from '../types';
 import ChatReasoningDemo from './ui/demo';
+import {
+  generateStudyNotesPDF,
+  exportChatTranscriptPDF,
+  compileAndDownloadExamSummaryPDF,
+} from '../utils/pdfGenerator';
 
 interface CambridgeNightmareSupportModalProps {
   isOpen: boolean;
@@ -58,60 +66,61 @@ Greetings candidate. Welcome to **Cambridge Nightmare Support**, your specialize
 
 const SUGGESTION_CHIPS = [
   {
-    icon: BookOpen,
-    label: 'What is the syllabus for 0580?',
-    prompt: 'What is the syllabus coverage, component options, and exam format for Cambridge IGCSE Mathematics 0580?',
-    badge: 'Syllabus',
-  },
-  {
-    icon: Calendar,
-    label: 'How do I handle exam clashes?',
-    prompt: 'How do I handle exam clashes if I have two Cambridge papers scheduled in the same morning or afternoon session?',
-    badge: 'Timetable',
-  },
-  {
-    icon: FileText,
-    label: 'How do I get my Statement of Entry?',
-    prompt: 'How do I retrieve my official Cambridge Statement of Entry (SOE), center number, and 4-digit candidate number?',
-    badge: 'Official Document',
-  },
-  {
-    icon: Layers,
-    label: 'What are the grade thresholds?',
-    prompt: 'How do Cambridge grade thresholds and component weightings work? How are raw marks converted to A* grades?',
-    badge: 'Grading',
-  },
-  {
-    icon: BookOpen,
-    label: '0580 Math P4 Traps & Tips',
-    prompt: 'What are the most common trap questions and lost marks in Cambridge IGCSE Mathematics 0580 Paper 4 (Extended)?',
-    badge: 'Tips',
-  },
-  {
-    icon: Sparkles,
-    label: '0620 Chemistry P6 Alt to Practical',
-    prompt: 'Give me a comprehensive checklist for Cambridge IGCSE Chemistry 0620 Paper 6 (Alternative to Practical): flame tests, gas tests, and experimental accuracy.',
-    badge: 'Chemistry',
-  },
-  {
     icon: Flame,
-    label: '2-Week Emergency Triage Plan',
-    prompt: 'I am 2 weeks away from my Cambridge IGCSE exams and haven\'t finished the syllabus. Give me an emergency triage plan to maximize my marks.',
+    label: '🚨 Panic Mode: 48h Emergency Cram Plan',
+    prompt: 'I have very little time left and feel overwhelmed. Give me an emergency 48-hour Cambridge triage plan for my subjects to maximize my marks.',
     badge: 'Triage',
   },
   {
+    icon: BookOpen,
+    label: 'Math 0580: P4 Traps & Tips',
+    prompt: 'What are the most common trap questions and lost marks in Cambridge IGCSE Mathematics 0580 Paper 4 (Extended)?',
+    badge: '0580 Math',
+  },
+  {
+    icon: Sparkles,
+    label: 'Chem 0620 / Physics 0625: P6 ATP Checklist',
+    prompt: 'Give me the essential Paper 6 Alternative to Practical (ATP) experimental design rules, gas/cation tests, and graph plotting rules to guarantee full marks.',
+    badge: 'Paper 6 ATP',
+  },
+  {
+    icon: Layers,
+    label: 'Grade Thresholds & A* Boundaries',
+    prompt: 'How do Cambridge grade thresholds and component weightings work? How are raw marks converted to A* grades in Oct/Nov?',
+    badge: 'Thresholds',
+  },
+  {
+    icon: Calendar,
+    label: 'Exam Clashes & Full Centre Supervision',
+    prompt: 'How do I handle exam clashes if I have two Cambridge papers scheduled in the same session, and what are the Key Time supervision rules?',
+    badge: 'Timetable',
+  },
+  {
     icon: ShieldAlert,
-    label: 'Exam Hall Panic & Time Strategy',
-    prompt: 'What is the optimal time-per-mark strategy in a 2-hour Cambridge paper, and what should I do if I blank out on question 1?',
+    label: 'Time-per-Mark & Blanking Out Strategy',
+    prompt: 'What is the optimal time-per-mark allocation strategy in Cambridge exams, and what should I do if my brain blanks out on question 1?',
     badge: 'Strategy',
+  },
+  {
+    icon: FileText,
+    label: 'Retrieve Statement of Entry (SOE)',
+    prompt: 'How do I retrieve my official Cambridge Statement of Entry (SOE), center number, and 4-digit candidate number?',
+    badge: 'Official SOE',
+  },
+  {
+    icon: Printer,
+    label: '📄 Download Exam Summary PDF',
+    prompt: 'Compile a comprehensive official Cambridge examination strategy and study summary PDF with my enrolled subjects, schedule, and revision takeaways.',
+    badge: 'PDF Summary',
   },
 ];
 
 const ATTACHMENT_SUGGESTION_CHIPS = [
   'Solve this past paper question with mark scheme breakdown',
-  'Check my working and identify any lost marks or errors',
-  'Explain the theory and formula behind this problem',
-  'What are the common examiner traps for this question?',
+  'Check my working, identify lost marks, and show ECF points',
+  'Explain the theory, formulas, and definitions for this question',
+  'What are the common examiner report traps for this problem?',
+  'Generate a 1-page PDF study sheet based on this problem',
 ];
 
 const LOADING_STATUS_STEPS = [
@@ -128,24 +137,93 @@ function generateClientCambridgeAcademicResponse(query: string, context?: any, a
 
   if (attachments && Array.isArray(attachments) && attachments.length > 0) {
     const attachmentNames = attachments.map((a) => a.name || 'study file').join(', ');
-    return `### 📝 Attached Cambridge Question Analysis: ${attachmentNames}
+    return `### 📝 Attached Cambridge Question & Diagnostic Review: ${attachmentNames}
 
-I've examined your attached past paper question for **${subjects}**:
+I have analyzed your attached study material / question for **${subjects}**:
 
-1. **Mark Scheme & Method (M1) Marks**:
-   - **Formulas & Substituted Values**: Always state the general formula before substituting numbers (e.g. $A = \\frac{1}{2}ab\\sin C$ or $v = u + at$). If your arithmetic slips, examiners award the **M1** (Method mark) through Error Carried Forward (**ECF**).
+1. **Step-by-Step Mark Scheme Breakdown**:
+   - **Formulas & Substituted Values**: Always state the general formula before substituting numbers (e.g. $A = \\frac{1}{2}ab\\sin C$, $F = ma$, or $n = \\frac{m}{M_r}$). If your arithmetic slips, examiners award the **M1** (Method mark) through Error Carried Forward (**ECF**).
    - **Significant Figures**: Cambridge requires non-exact answers rounded to **3 significant figures** (or 1 decimal place for angles in degrees, 2 d.p. for currency).
-   - **Units**: Ensure standard SI units are explicitly stated ($m/s^2$, $dm^3$, $J$, etc.).
+   - **Units**: Ensure standard SI units are explicitly stated ($m/s^2$, $dm^3$, $J$, $N$, etc.).
 
-2. **Common Examiner Traps for this Question**:
+2. **Handwritten Diagnostic & Error Carried Forward (ECF)**:
+   - If you provided your own handwritten solution: Check each line of working. Under CIE regulations, an isolated calculation slip on step 1 does not invalidate subsequent correct algebra.
+
+3. **Common Examiner Traps for this Question**:
    - Check if unit conversions are required before applying formulas (e.g. converting $cm^3$ to $dm^3$ by dividing by 1000, or grams to kilograms).
    - For graph questions, quote exact pairs of $(x, y)$ coordinates to claim the data-evidence mark.
 
 *Would you like me to write out the full derivation step-by-step or highlight common misconceptions on the Examiner Report?*`;
   }
 
+  // Panic / Cramming / Emotional Distress
+  if (
+    q.includes('cooked') ||
+    q.includes('panic') ||
+    q.includes('freak') ||
+    q.includes('crying') ||
+    q.includes('scared') ||
+    q.includes('haven\'t studied') ||
+    q.includes('fail') ||
+    q.includes('cram') ||
+    q.includes('1 day') ||
+    q.includes('2 days') ||
+    q.includes('tomorrow')
+  ) {
+    return `### 🛑 Breathe & Ground: Your Emergency Cambridge Crisis Action Plan
+First: **Take a deep breath.** Thousands of Cambridge candidates feel this exact panic during the exam series. Grade thresholds exist to reward every raw mark you earn, and you can recover significant marks right now:
+
+---
+
+#### 🚨 3-Step Emergency Triage (The 80/20 Rule)
+1. **Stop Passive Re-reading — Switch to Classified Past Papers**:
+   - Do NOT spend hours reading the whole textbook. Pull the last 3 series (2022–2024) of **Paper 2 / Paper 4**.
+   - Attempt questions topic-by-topic with the mark scheme side-by-side.
+2. **Collect Guaranteed Method & Definition Marks**:
+   - Cambridge awards **M1 (Method marks)** and **B1 (Independent marks)** simply for writing the correct formula, defining key terms, or showing intermediate steps—even if your final answer is wrong (**Error Carried Forward / ECF**).
+3. **Master the Big High-Yield Pillars**:
+   - **Maths (0580)**: Quadratics & algebra, Trigonometry (Sine/Cosine rules), Vectors, Probability trees, Cumulative frequency.
+   - **Physics (0625)**: Mechanics formulas ($F=ma, W=mg$), Thermal capacity ($Q=mc\\Delta T$), Circuits ($V=IR, P=IV$), Wave equations ($v=f\\lambda$).
+   - **Chemistry (0620)**: Moles calculations ($n=\\frac{m}{M_r}$), Electrolysis products, Organic polymerisation, Cation/Anion tests.
+
+*Which specific paper or topic is giving you the highest stress right now? Let's solve it together step-by-step.*`;
+  }
+
+  // Stationery / Exam Room Regulations / Calculators
+  if (
+    q.includes('stationery') ||
+    q.includes('pencil') ||
+    q.includes('pen') ||
+    q.includes('calculator') ||
+    q.includes('tipp-ex') ||
+    q.includes('correction') ||
+    q.includes('ruler') ||
+    q.includes('allowed')
+  ) {
+    return `### 📋 Official Cambridge Examination Room & Stationery Regulations
+
+Here are the strict Cambridge International regulations for what you can and cannot bring into the exam room:
+
+1. **Pens & Pencils**:
+   - **Theory / Structured Papers (Paper 2, 3, 4, 6)**: Must use **black or dark blue ballpoint pen**. Do NOT use erasable pens or highlighters on your answers.
+   - **Multiple Choice (Paper 1 / MCQ)**: Must use an **HB soft pencil** and clean eraser to shade candidate sheets.
+   - **Diagrams & Graphs**: Always draw graphs, best-fit lines, and geometric constructions in **HB pencil**.
+
+2. **Strictly Forbidden Items**:
+   - ❌ **Correction tape or fluid (Tipp-Ex)** is **strictly forbidden**. If you make a mistake, draw a single neat horizontal line through the incorrect work.
+   - ❌ **Smartwatches, mobile phones, or electronic communication devices** (immediate disqualification penalty).
+   - ❌ Opaque pencil cases (must be **100% transparent/clear**).
+
+3. **Calculator Policy**:
+   - Allowed: Standard scientific calculators (e.g. Casio fx-82, fx-991EX, fx-991CW).
+   - Banned: Any calculator with symbolic algebraic manipulation (CAS), graphical programming capabilities, or internet retrieval.
+   - Note: 0580 Mathematics Paper 1 and Paper 2 are **Non-Calculator** papers.
+
+*Have any questions regarding specific calculator models or special consideration?*`;
+  }
+
   // 0580 Mathematics specific query
-  if (q.includes('0580') || (q.includes('math') && (q.includes('syllabus') || q.includes('component') || q.includes('format')))) {
+  if (q.includes('0580') || (q.includes('math') && (q.includes('syllabus') || q.includes('component') || q.includes('format') || q.includes('vector') || q.includes('trig') || q.includes('circle')))) {
     return `### 📐 Cambridge IGCSE Mathematics (0580) Complete Syllabus & Exam Blueprint
 
 Here is the official breakdown of the syllabus coverage, component options, and exam format for **Cambridge IGCSE Mathematics 0580**:
@@ -185,7 +263,7 @@ Candidates are entered for either the **Core Tier** or the **Extended Tier**:
   }
 
   // 0620 Chemistry query
-  if (q.includes('0620') || q.includes('chemistry')) {
+  if (q.includes('0620') || q.includes('chemistry') || q.includes('mole') || q.includes('electrolysis')) {
     return `### 🧪 Cambridge IGCSE Chemistry (0620) Syllabus & Exam Structure
 
 #### 1. Component Options:
@@ -202,7 +280,7 @@ Candidates are entered for either the **Core Tier** or the **Extended Tier**:
   }
 
   // 0625 Physics query
-  if (q.includes('0625') || q.includes('physics')) {
+  if (q.includes('0625') || q.includes('physics') || q.includes('wave') || q.includes('circuit')) {
     return `### ⚡ Cambridge IGCSE Physics (0625) Syllabus & Exam Blueprint
 
 #### 1. Component Options:
@@ -233,7 +311,23 @@ Don't let the Paper 4 reputation intimidate you. Cambridge examiner reports reve
    - Always write intermediate formulas. Even if your final calculation slips, Cambridge awards **M-marks** (Method) and applies ECF so you only lose 1 mark instead of the whole question.`;
   }
 
-  if (q.includes('clash') || q.includes('timetable') || q.includes('key time') || q.includes('supervision')) {
+  if (q.includes('paper 6') || q.includes('atp') || q.includes('alternative to practical')) {
+    return `### 🧪 Paper 6 (Alternative to Practical) High-Yield Rules
+Paper 6 is the easiest paper to guarantee an A* with strict template discipline:
+
+1. **Graph Plotting Rules**:
+   - Plot points with **small neat crosses (x)**.
+   - Points must occupy **more than 50%** of the grid on both axes.
+   - Draw a single, smooth line of best fit—never connect dots with a ruler like a staircase.
+
+2. **Planning / 6-Mark Experiment Question**:
+   - **Variables**: State Independent (change), Dependent (measure with tool), and 2 Controlled (keep constant).
+   - **Apparatus**: Name exact measuring tools (e.g. *gas syringe with 1cm³ precision*, *stopwatch*, *water bath*).
+   - **Reliability**: Always write *"Repeat 3 times and calculate mean average, discarding anomalies"*.
+   - **Safety**: State specific precaution (e.g. *wear goggles when heating acid*).`;
+  }
+
+  if (q.includes('clash') || q.includes('timetable') || q.includes('key time') || q.includes('supervision') || q.includes('fcs')) {
     return `### 🕒 Cambridge Timetable Clash & Key Time Protocol
 If you have multiple papers scheduled in the same morning or afternoon session:
 
@@ -425,6 +519,22 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    if (e.clipboardData && e.clipboardData.items) {
+      const items = Array.from(e.clipboardData.items);
+      const files: File[] = [];
+      for (const item of items) {
+        if (item.kind === 'file') {
+          const file = item.getAsFile();
+          if (file) files.push(file);
+        }
+      }
+      if (files.length > 0) {
+        processFiles(files);
+      }
+    }
+  };
+
   const handleSendMessage = async (textToSend?: string) => {
     const prompt = (textToSend !== undefined ? textToSend : inputMessage).trim();
     if ((!prompt && stagedAttachments.length === 0) || isLoading) return;
@@ -543,100 +653,148 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  if (!isOpen) return null;
+  const [downloadingPdfId, setDownloadingPdfId] = useState<string | null>(null);
+  const [isCompilingSummaryPdf, setIsCompilingSummaryPdf] = useState(false);
+
+  const handleExportFullChatPDF = () => {
+    try {
+      exportChatTranscriptPDF(messages, candidateContext);
+    } catch (e) {
+      console.error('Failed to export transcript PDF:', e);
+    }
+  };
+
+  const handleCompileExamSummaryPDF = () => {
+    try {
+      setIsCompilingSummaryPdf(true);
+      compileAndDownloadExamSummaryPDF(
+        messages,
+        candidateContext,
+        'OFFICIAL CANDIDATE EXAMINATION STRATEGY & STUDY SUMMARY'
+      );
+      setTimeout(() => setIsCompilingSummaryPdf(false), 1500);
+    } catch (e) {
+      console.error('Failed to compile exam summary PDF:', e);
+      setIsCompilingSummaryPdf(false);
+    }
+  };
+
+  const handleDownloadStudyNotesPDF = (msgId: string, text: string, title?: string) => {
+    try {
+      setDownloadingPdfId(msgId);
+      const docTitle = title || 'Cambridge Study Guide';
+      generateStudyNotesPDF(docTitle, text, candidateContext);
+      setTimeout(() => setDownloadingPdfId(null), 1500);
+    } catch (e) {
+      console.error('Failed to export study notes PDF:', e);
+      setDownloadingPdfId(null);
+    }
+  };
 
   return (
-    <div
-      className="modal-overlay"
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(2, 6, 23, 0.88)',
-        backdropFilter: 'blur(8px)',
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: isFullscreen ? '0px' : '16px',
-        animation: 'fadeIn 0.2s ease-out',
-      }}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="nightmare-support-title"
-    >
-      {/* Hidden File and Photo Inputs */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileSelect}
-        multiple
-        accept=".pdf,.doc,.docx,.txt,.csv,.png,.jpg,.jpeg,.webp"
-        style={{ display: 'none' }}
-        id="nightmare-file-input"
-      />
-      <input
-        type="file"
-        ref={imageInputRef}
-        onChange={handleFileSelect}
-        multiple
-        accept="image/*"
-        style={{ display: 'none' }}
-        id="nightmare-photo-input"
-      />
-
-      {/* Drag & Drop Visual Overlay */}
-      {isDraggingOver && (
-        <div
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          key="nightmare-modal-backdrop"
+          className="modal-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.22, ease: 'easeOut' }}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onPaste={handlePaste}
           style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'rgba(30, 58, 138, 0.88)',
-            backdropFilter: 'blur(4px)',
-            zIndex: 10000,
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(2, 6, 23, 0.88)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 9999,
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '16px',
-            color: '#ffffff',
-            border: '3px dashed #60a5fa',
-            borderRadius: isFullscreen ? '0px' : '14px',
-            pointerEvents: 'none',
+            padding: isFullscreen ? '0px' : '16px',
           }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="nightmare-support-title"
         >
-          <UploadCloud size={64} color="#93c5fd" />
-          <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em' }}>
-            Drop Question Photos, Diagrams, or PDFs Here
-          </div>
-          <div style={{ fontSize: '13px', color: '#bfdbfe', fontFamily: 'var(--font-mono)' }}>
-            Supports past paper screenshots, graph plots, handwriting, and study PDFs
-          </div>
-        </div>
-      )}
+          {/* Hidden File and Photo Inputs */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            multiple
+            accept=".pdf,.doc,.docx,.txt,.csv,.png,.jpg,.jpeg,.webp"
+            style={{ display: 'none' }}
+            id="nightmare-file-input"
+          />
+          <input
+            type="file"
+            ref={imageInputRef}
+            onChange={handleFileSelect}
+            multiple
+            accept="image/*"
+            style={{ display: 'none' }}
+            id="nightmare-photo-input"
+          />
 
-      {/* Main Modal Card */}
-      <div
-        className="modal-container"
-        style={{
-          background: 'linear-gradient(180deg, #090d16 0%, #030712 100%)',
-          border: '1px solid rgba(96, 165, 250, 0.3)',
-          borderRadius: isFullscreen ? '0px' : '14px',
-          width: isFullscreen ? '100vw' : '980px',
-          height: isFullscreen ? '100vh' : '86vh',
-          maxWidth: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 35px rgba(37, 99, 235, 0.25)',
-          overflow: 'hidden',
-          position: 'relative',
-        }}
-      >
+          {/* Drag & Drop Visual Overlay */}
+          {isDraggingOver && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(30, 58, 138, 0.88)',
+                backdropFilter: 'blur(4px)',
+                zIndex: 10000,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '16px',
+                color: '#ffffff',
+                border: '3px dashed #60a5fa',
+                borderRadius: isFullscreen ? '0px' : '14px',
+                pointerEvents: 'none',
+              }}
+            >
+              <UploadCloud size={64} color="#93c5fd" />
+              <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em' }}>
+                Drop Question Photos, Diagrams, or PDFs Here
+              </div>
+              <div style={{ fontSize: '13px', color: '#bfdbfe', fontFamily: 'var(--font-mono)' }}>
+                Supports past paper screenshots, graph plots, handwriting, and study PDFs
+              </div>
+            </div>
+          )}
+
+          {/* Main Modal Card */}
+          <motion.div
+            key="nightmare-modal-card"
+            className="modal-container"
+            initial={{ opacity: 0, scale: 0.94, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: 12, transition: { duration: 0.18, ease: 'easeIn' } }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              background: 'linear-gradient(180deg, #090d16 0%, #030712 100%)',
+              border: '1px solid rgba(96, 165, 250, 0.3)',
+              borderRadius: isFullscreen ? '0px' : '14px',
+              width: isFullscreen ? '100vw' : '980px',
+              height: isFullscreen ? '100vh' : '86vh',
+              maxWidth: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 35px rgba(37, 99, 235, 0.25)',
+              overflow: 'hidden',
+              position: 'relative',
+            }}
+          >
         {/* Top Header Bar */}
         <header
           style={{
@@ -772,6 +930,85 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
                   <span>Clear Chat</span>
                 </>
               )}
+            </button>
+
+            {/* Compile & Download Exam Summary PDF */}
+            <button
+              type="button"
+              id="compile-exam-summary-pdf-btn"
+              onClick={handleCompileExamSummaryPDF}
+              disabled={isCompilingSummaryPdf}
+              style={{
+                background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.5), rgba(37, 99, 235, 0.3))',
+                border: '1px solid rgba(147, 197, 253, 0.45)',
+                borderRadius: '6px',
+                padding: '6px 12px',
+                color: '#dbeafe',
+                fontSize: '11px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.2)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(30, 58, 138, 0.8), rgba(37, 99, 235, 0.5))';
+                e.currentTarget.style.color = '#ffffff';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(30, 58, 138, 0.5), rgba(37, 99, 235, 0.3))';
+                e.currentTarget.style.color = '#dbeafe';
+              }}
+              title="Compile and download an official Cambridge examination summary PDF with enrolled subjects, timetable, and revision takeaways"
+            >
+              {isCompilingSummaryPdf ? (
+                <>
+                  <Check size={13} color="#4ade80" />
+                  <span style={{ color: '#4ade80' }}>Compiled!</span>
+                </>
+              ) : (
+                <>
+                  <Printer size={13} color="#93c5fd" />
+                  <span>Exam Summary PDF</span>
+                </>
+              )}
+            </button>
+
+            {/* Export Entire Chat as PDF */}
+            <button
+              type="button"
+              id="export-chat-pdf-btn"
+              onClick={handleExportFullChatPDF}
+              style={{
+                background: 'rgba(37, 99, 235, 0.15)',
+                border: '1px solid rgba(96, 165, 250, 0.35)',
+                borderRadius: '6px',
+                padding: '6px 12px',
+                color: '#93c5fd',
+                fontSize: '11px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(37, 99, 235, 0.3)';
+                e.currentTarget.style.color = '#ffffff';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(37, 99, 235, 0.15)';
+                e.currentTarget.style.color = '#93c5fd';
+              }}
+              title="Download entire conversation as an official Cambridge study transcript PDF"
+            >
+              <FileDown size={13} />
+              <span>Transcript PDF</span>
             </button>
 
             {/* Fullscreen Toggle */}
@@ -1108,16 +1345,61 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
                     </div>
                   )}
 
-                  {/* Message Tools (Copy) */}
+                  {/* Message Tools (PDF Export & Copy) */}
                   <div
                     style={{
                       display: 'flex',
-                      justifyContent: 'flex-end',
-                      marginTop: '8px',
-                      paddingTop: '6px',
-                      borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                      alignItems: 'center',
+                      justifyContent: msg.role === 'model' ? 'space-between' : 'flex-end',
+                      marginTop: '10px',
+                      paddingTop: '8px',
+                      borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                      gap: '8px',
                     }}
                   >
+                    {msg.role === 'model' && (
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadStudyNotesPDF(msg.id, msg.text, 'Cambridge AI Revision Guide')}
+                        disabled={downloadingPdfId === msg.id}
+                        style={{
+                          background: 'rgba(37, 99, 235, 0.2)',
+                          border: '1px solid rgba(96, 165, 250, 0.35)',
+                          borderRadius: '6px',
+                          color: '#93c5fd',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          fontSize: '11px',
+                          fontFamily: 'var(--font-mono)',
+                          padding: '3px 8px',
+                          transition: 'all 0.2s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(37, 99, 235, 0.4)';
+                          e.currentTarget.style.color = '#ffffff';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(37, 99, 235, 0.2)';
+                          e.currentTarget.style.color = '#93c5fd';
+                        }}
+                        title="Download this response as a formatted Cambridge Study PDF"
+                      >
+                        {downloadingPdfId === msg.id ? (
+                          <>
+                            <Check size={12} color="#4ade80" />
+                            <span style={{ color: '#4ade80' }}>Generated!</span>
+                          </>
+                        ) : (
+                          <>
+                            <FileDown size={12} color="#60a5fa" />
+                            <span>Download as PDF</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => handleCopyMessage(msg.id, msg.text)}
@@ -1129,7 +1411,7 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
                         display: 'flex',
                         alignItems: 'center',
                         gap: '4px',
-                        fontSize: '10px',
+                        fontSize: '11px',
                         fontFamily: 'var(--font-mono)',
                         padding: '2px 4px',
                       }}
@@ -1614,10 +1896,11 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
                 placeholder={
                   stagedAttachments.length > 0
-                    ? "Describe what you need help with in this attached file (or press Enter to analyze)..."
-                    : "Ask or attach question photo / diagram / PDF to study together..."
+                    ? "Add specific instructions for this attached file (or press Enter to analyze with mark scheme)..."
+                    : "Ask any Cambridge question, paste screenshot (Ctrl+V), or attach photo..."
                 }
                 disabled={isLoading}
                 rows={1}
@@ -1690,82 +1973,97 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
             <span>Cambridge IGCSE 2026</span>
           </div>
         </footer>
-      </div>
+      </motion.div>
 
       {/* Lightbox Modal for Zooming Attached Images */}
-      {activeLightboxImage && (
-        <div
-          onClick={() => setActiveLightboxImage(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.92)',
-            zIndex: 100000,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '24px',
-            cursor: 'zoom-out',
-          }}
-        >
-          <div
+      <AnimatePresence>
+        {activeLightboxImage && (
+          <motion.div
+            key="lightbox-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setActiveLightboxImage(null)}
             style={{
-              position: 'relative',
-              maxWidth: '92vw',
-              maxHeight: '90vh',
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.92)',
+              backdropFilter: 'blur(8px)',
+              zIndex: 100000,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
+              justifyContent: 'center',
+              padding: '24px',
+              cursor: 'zoom-out',
             }}
-            onClick={(e) => e.stopPropagation()}
           >
-            <div
+            <motion.div
+              key="lightbox-content"
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.94 }}
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
               style={{
+                position: 'relative',
+                maxWidth: '92vw',
+                maxHeight: '90vh',
                 display: 'flex',
-                justifyContent: 'space-between',
-                width: '100%',
-                marginBottom: '8px',
-                color: '#ffffff',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '12px',
+                flexDirection: 'column',
+                alignItems: 'center',
               }}
+              onClick={(e) => e.stopPropagation()}
             >
-              <span>Past Paper Image / Diagram Inspection</span>
-              <button
-                type="button"
-                onClick={() => setActiveLightboxImage(null)}
+              <div
                 style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: 'none',
-                  color: '#ffffff',
-                  borderRadius: '4px',
-                  padding: '4px 8px',
-                  cursor: 'pointer',
                   display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  marginBottom: '8px',
+                  color: '#ffffff',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '12px',
                 }}
               >
-                <X size={14} /> Close
-              </button>
-            </div>
-            <img
-              src={activeLightboxImage}
-              alt="Expanded study diagram"
-              style={{
-                maxWidth: '92vw',
-                maxHeight: '82vh',
-                objectFit: 'contain',
-                borderRadius: '8px',
-                border: '1px solid rgba(96, 165, 250, 0.4)',
-                boxShadow: '0 10px 40px rgba(0, 0, 0, 0.9)',
-              }}
-            />
-          </div>
-        </div>
-      )}
-    </div>
+                <span>Past Paper Image / Diagram Inspection</span>
+                <button
+                  type="button"
+                  onClick={() => setActiveLightboxImage(null)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: 'none',
+                    color: '#ffffff',
+                    borderRadius: '4px',
+                    padding: '4px 8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <X size={14} /> Close
+                </button>
+              </div>
+              <img
+                src={activeLightboxImage}
+                alt="Expanded study diagram"
+                style={{
+                  maxWidth: '92vw',
+                  maxHeight: '82vh',
+                  objectFit: 'contain',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(96, 165, 250, 0.4)',
+                  boxShadow: '0 10px 40px rgba(0, 0, 0, 0.9)',
+                }}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+    )}
+  </AnimatePresence>
   );
 };
 
