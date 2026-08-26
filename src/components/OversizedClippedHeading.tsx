@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion, Variants } from 'motion/react';
+import { AnimatedGradientText } from '@/registry/magicui/animated-gradient-text';
 
 export interface OversizedClippedHeadingProps {
   text: string;
@@ -79,12 +80,19 @@ export function OversizedClippedHeading({
             >
               <motion.span
                 variants={wordClipVariants}
-                className="inline-block bg-gradient-to-b from-white via-white/95 to-white/70 bg-clip-text text-transparent"
+                className="inline-block"
                 style={{
                   willChange: 'transform, opacity, clip-path, filter',
                 }}
               >
-                {word}
+                <AnimatedGradientText
+                  speed={2}
+                  colorFrom="#4ade80"
+                  colorTo="#06b6d4"
+                  className="font-extrabold tracking-tighter"
+                >
+                  {word}
+                </AnimatedGradientText>
               </motion.span>
             </div>
           ))}

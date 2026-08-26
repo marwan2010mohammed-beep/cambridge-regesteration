@@ -6,6 +6,7 @@ export interface ExamSubject {
   selectedPapers?: string[]; // Specific papers selected (e.g. ['Paper 4 (Theory Extended)'])
   tier: 'Core' | 'Extended' | 'Standard';
   selected: boolean;
+  syllabusRequirements?: string;
 }
 
 export interface CandidateEnrollment {

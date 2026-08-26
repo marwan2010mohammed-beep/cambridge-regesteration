@@ -3,6 +3,8 @@ import { motion, AnimatePresence, Variants } from 'motion/react';
 import { CountdownTimer } from './components/CountdownTimer';
 import { ALL_OCT_NOV_SUBJECTS } from './data/subjects';
 import { ExamSubject, CandidateEnrollment } from './types';
+import { SubjectChipWithTooltip } from './components/SubjectChipWithTooltip';
+import { AuroraText } from "@/registry/magicui/aurora-text";
 import { generateTimetableSummary } from './data/examSchedule';
 import { validateEmail, validateDiscordHandle } from './utils/validation';
 import { UiverseButton } from './components/UiverseButton';
@@ -692,7 +694,7 @@ export default function App() {
       {/* Navigation Header */}
       <nav role="banner" className="header-anim">
         <a href="#top" className="logo flex items-center gap-1.5" id="brand-logo" aria-label="Cambridge International">
-          CAMBRIDGE <span className="purple-glow-pulse font-extrabold tracking-wide">NIGHTMARE</span>
+          CAMBRIDGE <AuroraText className="font-extrabold tracking-wide">NIGHTMARE</AuroraText>
         </a>
 
         <div className="nav-cluster">
@@ -1554,50 +1556,15 @@ export default function App() {
                 <div className="subject-chips-list" aria-label="Selected examination subjects">
                   {subjects
                     .filter((s) => s.selected)
-                    .map((s) => {
-                      const selPapers = s.selectedPapers || s.papers;
-                      const isAll = selPapers.length === s.papers.length;
-                      const papersBadge = isAll
-                        ? 'All Papers'
-                        : selPapers.length === 1
-                        ? `${selPapers[0].match(/Paper\s*\d+/i)?.[0] || selPapers[0]} only`
-                        : `${selPapers.map((p) => p.match(/Paper\s*\d+/i)?.[0] || p).join(', ')}`;
-
-                      return (
-                        <span
-                          key={s.code}
-                          className="subject-chip"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                        >
-                          <span className="subject-chip-code">{s.code}</span>
-                          <span>{s.name.split(' ')[0]}</span>
-                          <span
-                            onClick={() => setActiveModal('papers')}
-                            style={{
-                              fontSize: '12px',
-                              background: isAll ? 'rgba(255,255,255,0.1)' : 'rgba(163,230,53,0.15)',
-                              color: isAll ? 'var(--text-dim)' : '#a3e635',
-                              border: '1px solid',
-                              borderColor: isAll ? 'rgba(255,255,255,0.15)' : 'rgba(163,230,53,0.4)',
-                              padding: '1px 5px',
-                              cursor: 'pointer',
-                            }}
-                            title="Click to customize papers"
-                          >
-                            {papersBadge}
-                          </span>
-                          <button
-                            type="button"
-                            className="subject-chip-remove"
-                            onClick={() => toggleSubject(s.code)}
-                            title={`Remove ${s.name}`}
-                            aria-label={`Remove ${s.name}`}
-                          >
-                            ✕
-                          </button>
-                        </span>
-                      );
-                    })}
+                    .map((s) => (
+                      <SubjectChipWithTooltip
+                        key={s.code}
+                        subject={s}
+                        onCustomizePapers={() => setActiveModal('papers')}
+                        onRemoveSubject={() => toggleSubject(s.code)}
+                        showRemoveButton={true}
+                      />
+                    ))}
                 </div>
               )}
             </div>
@@ -1666,6 +1633,45 @@ export default function App() {
               </span>
               <span className="accent">[ Customize Papers ↗ ]</span>
             </button>
+
+            {/* Interactive Subject Chips with Hover-Activated Syllabus Tooltips */}
+            {selectedCount > 0 && (
+              <div style={{ marginTop: '10px', marginBottom: '14px' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '6px',
+                    fontSize: '11px',
+                    color: 'var(--text-dim)',
+                    fontFamily: 'var(--font-mono)',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <BookOpen size={12} color="#60a5fa" />
+                    <span>ENROLLED SUBJECTS & SYLLABUS OVERVIEW</span>
+                  </span>
+                  <span style={{ color: '#60a5fa', fontSize: '10px' }}>
+                    💡 Hover chip for syllabus requirements
+                  </span>
+                </div>
+                <div className="subject-chips-list" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {subjects
+                    .filter((s) => s.selected)
+                    .map((s) => (
+                      <SubjectChipWithTooltip
+                        key={s.code}
+                        subject={s}
+                        onCustomizePapers={() => setActiveModal('papers')}
+                        onRemoveSubject={() => toggleSubject(s.code)}
+                        showRemoveButton={false}
+                      />
+                    ))}
+                </div>
+              </div>
+            )}
 
             {/* Interactive Timetable & Clash Preview Banner */}
             {selectedCount > 0 && (

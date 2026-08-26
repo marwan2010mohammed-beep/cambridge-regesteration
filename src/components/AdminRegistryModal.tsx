@@ -57,6 +57,7 @@ import {
   RefreshCw,
   Zap,
   AlertTriangle,
+  FileJson,
 } from 'lucide-react';
 
 interface AdminRegistryModalProps {
@@ -126,6 +127,7 @@ export function AdminRegistryModal({
   const [dmCopiedSuccess, setDmCopiedSuccess] = useState(false);
   const [resendingWebhookId, setResendingWebhookId] = useState<string | null>(null);
   const [resendWebhookFeedback, setResendWebhookFeedback] = useState<string | null>(null);
+  const [backupFeedback, setBackupFeedback] = useState<string | null>(null);
 
   // EmailJS Settings State
   const [emailConfig, setEmailConfig] = useState<EmailConfig>(() => getEmailConfig());
@@ -315,6 +317,56 @@ export function AdminRegistryModal({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleDownloadBackup = () => {
+    try {
+      const localStorageDump: Record<string, any> = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) {
+          const item = localStorage.getItem(key);
+          try {
+            localStorageDump[key] = item ? JSON.parse(item) : null;
+          } catch {
+            localStorageDump[key] = item;
+          }
+        }
+      }
+
+      const backupPayload = {
+        metadata: {
+          system: 'Cambridge IGCSE Candidate & Examination Registry',
+          exportedAt: new Date().toISOString(),
+          timestamp: Date.now(),
+          exportedBy: currentUser || 'Admin',
+          totalCandidates: enrollments.length,
+          totalPreApprovedRoster: preApprovedRoster.length,
+        },
+        enrollments: enrollments,
+        preApprovedRoster: preApprovedRoster,
+        localStorageData: localStorageDump,
+      };
+
+      const jsonString = JSON.stringify(backupPayload, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const dateTag = new Date().toISOString().slice(0, 10);
+      link.download = `cambridge_enrollment_backup_${dateTag}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      setBackupFeedback('✓ Enrollment backup JSON exported and downloaded successfully!');
+      setTimeout(() => setBackupFeedback(null), 4000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setBackupFeedback(`✕ Backup export failed: ${msg}`);
+      setTimeout(() => setBackupFeedback(null), 4000);
+    }
   };
 
   const handleSaveWebhookSettings = (e?: React.FormEvent) => {
@@ -955,6 +1007,25 @@ export function AdminRegistryModal({
               </div>
             )}
 
+            {backupFeedback && (
+              <div
+                style={{
+                  background: backupFeedback.startsWith('✓') ? 'rgba(163, 230, 53, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                  border: `1px solid ${backupFeedback.startsWith('✓') ? 'rgba(163, 230, 53, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+                  color: backupFeedback.startsWith('✓') ? '#a3e635' : '#f87171',
+                  padding: '8px 12px',
+                  fontSize: '11px',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                {backupFeedback.startsWith('✓') ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
+                <span>{backupFeedback}</span>
+              </div>
+            )}
+
             {/* TAB 1: CANDIDATES REGISTRY */}
             {activeAdminTab === 'candidates' && (
               <div>
@@ -1043,10 +1114,33 @@ export function AdminRegistryModal({
                     cursor: 'pointer',
                     letterSpacing: '0.08em',
                   }}
-                  title="Export all records as CSV"
+                  title="Export all candidate records as CSV spreadsheet"
                 >
                   <Download size={13} />
                   EXPORT CSV
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadBackup}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'rgba(163, 230, 53, 0.15)',
+                    border: '1px solid rgba(163, 230, 53, 0.45)',
+                    color: '#a3e635',
+                    padding: '6px 12px',
+                    fontSize: '11px',
+                    fontFamily: 'var(--font-mono)',
+                    cursor: 'pointer',
+                    letterSpacing: '0.08em',
+                    fontWeight: 600,
+                  }}
+                  title="Download current enrollment and local storage state as JSON backup for data portability"
+                >
+                  <FileJson size={13} />
+                  BACKUP JSON
                 </button>
 
                 {enrollments.length > 0 && (

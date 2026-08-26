@@ -376,8 +376,65 @@ const RAW_SUBJECTS: Omit<ExamSubject, 'selectedPapers'>[] = [
   },
 ];
 
+export const SYLLABUS_REQUIREMENTS_MAP: Record<string, string> = {
+  '0580': 'Requires Extended tier mastery of Number, Algebra, Coordinate Geometry, Trigonometry, Mensuration, Vectors, Transformations, and Probability across Paper 2 (Short Answer) and Paper 4 (Structured).',
+  '0606': 'Advanced syllabus requiring proficiency in Functions, Polynomials, Equations & Inequalities, Logarithms, Trigonometric Identities, Vectors, Permutations, and Differential & Integral Calculus.',
+  '0607': 'Focuses on Graphic Display Calculator (GDC) applications, Advanced Functions, Statistics, Probability, and Paper 6 Investigation & Problem Solving.',
+  '0625': 'Syllabus requires Motion, Forces & Energy, Thermal Physics, Waves, Electricity & Magnetism, Atomic Physics, and Astrophysics, evaluated via MCQ, Theory, and Practical skills.',
+  '0620': 'Covers States of Matter, Stoichiometry, Electrochemistry, Chemical Energetics, Organic Chemistry, Chemical Analysis, and Experimental Design across Papers 2, 4, & 6.',
+  '0610': 'Syllabus includes Cell Biology, Molecular Transport, Enzymes, Plant & Human Physiology, Respiration, Inheritance, Biotechnology, Ecosystems, and Experimental Analysis.',
+  '0653': 'Integrated foundational syllabus combining core Physics, Chemistry, and Biology modules tested across Multiple Choice, Extended Theory, and Practical Alternative papers.',
+  '0654': 'Comprehensive double-award science covering in-depth Physics, Chemistry, and Biology topics equivalent to two full Cambridge IGCSE qualifications.',
+  '0680': 'Focuses on Sustainable Resource Management, Ecosystems, Atmosphere, Oceans, Agriculture, Energy, Land Use, Pollution, and Case Studies in Context.',
+  '0697': 'Covers Physical Oceanography, Marine Ecosystems, Coastal Habitats, Marine Organisms, Fisheries & Aquaculture, Conservation, and Resource Management.',
+  '0600': 'Covers Soil Science, Crop Production, Livestock Husbandry, Agricultural Economics, Farm Machinery, and Practical Agricultural Management.',
+  '0478': 'Syllabus covers Data Representation (Binary/Hex), Hardware, Software, Cyber Security, Automated Systems, Algorithm Design, Pseudocode, Logic Gates, and Databases.',
+  '0417': 'Tests theoretical ICT knowledge (hardware, networks, safety) alongside practical examinations in Document Production, Spreadsheets, Database Management, and Web Authoring (HTML/CSS).',
+  '0500': 'Requires high-level critical reading comprehension, text synthesis, summary writing, formal directed writing, and narrative/descriptive composition.',
+  '0510': 'Focuses on reading comprehension, information transfer, formal/informal writing, note-taking, and listening comprehension for non-native speakers.',
+  '0511': 'Evaluates reading, summary writing, listening, and formal count-in oral examination components.',
+  '0475': 'Requires critical study and textual analysis of set poetry, prose, and drama texts, analyzing literary techniques, themes, and character development.',
+  '0408': 'Explores translated literature from diverse cultures, requiring unseen prose analysis, set text essays, and personal response coursework.',
+  '0508': 'Advanced Arabic language syllabus evaluating complex reading comprehension, text analysis, summary, and creative/argumentative essay writing.',
+  '0544': 'Tests listening comprehension, practical reading skills, everyday conversation, and structured written communication in Modern Standard Arabic.',
+  '0520': 'Develops listening, reading comprehension, speaking fluency, and written expression across authentic French cultural and social contexts.',
+  '0530': 'Assesses listening, reading, oral interaction, and written expression in Spanish across everyday and academic topics.',
+  '0525': 'Focuses on German listening comprehension, reading skills, oral communication, and structured writing tasks.',
+  '0509': 'Advanced Chinese language syllabus assessing literary reading, directed writing, text synthesis, and classical/modern Chinese writing.',
+  '0523': 'Evaluates reading, writing, and listening comprehension skills in Mandarin Chinese for second-language learners.',
+  '0547': 'Develops listening, reading, speaking, and written communication skills in Mandarin Chinese (Pinyin and simplified characters).',
+  '0450': 'Covers Business Activity, Human Resources, Marketing, Operational Management, Financial Decision-making, and External Economic Influences.',
+  '0452': 'Syllabus covers Double-Entry Bookkeeping, Financial Statements, Accounting Principles, Adjustments, Control Accounts, Incomplete Records, and Financial Ratio Analysis.',
+  '0455': 'Requires understanding of Basic Economic Problems, Microeconomic Demand & Supply, Firm Behavior, Macroeconomic Objectives, Government Policies, and International Trade.',
+  '0454': 'Combines business enterprise theory with a practical project planning, launching, and evaluating a real enterprise activity.',
+  '0471': 'Explores the global tourism industry, customer service, destination marketing, travel operations, and sustainable tourism development.',
+  '0470': 'Focuses on 20th-century International Relations (1919–1989), Cold War crisis points, the League of Nations/UN, and Depth Study source evaluation.',
+  '0460': 'Covers Population & Settlement, Coastal & River Environments, Weather & Climate, Development, Economic Activities, and Fieldwork Skills.',
+  '0457': 'Critical evaluation of global issues (globalization, artificial intelligence, climate change) via written examination, research report, and team project.',
+  '0495': 'Examines Social Research Methods, Culture & Socialization, Social Inequality, Family, Education, and Crime & Deviance.',
+  '0490': 'Comparative study of major world religions (Christianity, Islam, Judaism), exploring beliefs, worship, ethical issues, and scriptural teachings.',
+  '0493': 'Covers Quranic Passages, Life and Character of Prophet Muhammad (PBUH), First Islamic Community, Hadith compilations, and Rightly Guided Caliphs.',
+  '0448': 'Two-part syllabus covering History & Cultural Heritage of Pakistan (Paper 1) and Environmental & Economic Geography of Pakistan (Paper 2).',
+  '0449': 'Explores the History, Culture, Heritage, Environment, Resources, and Economic Development of Bangladesh.',
+  '0400': 'Requires observational study, creative experimentation with media, contextual research, and submission of a comprehensive visual portfolio.',
+  '0445': 'Combines Product Design theory, materials technology (plastics, metals, woods), CAD/CAM, and a practical design & make project.',
+  '0410': 'Evaluates Western Classical listening, World Music, Solo & Ensemble Performance, and Original Music Composition.',
+  '0411': 'Combines written examination of play scripts and theatrical concepts with practical group performance and monologue evaluation.',
+  '0413': 'Covers Anatomy, Physiology, Health, Fitness, Training Principles, Skill Acquisition, and Practical Sports Performance assessment.',
+  '0648': 'Focuses on Nutritional Science, Diet Planning, Food Safety, Digestion, Food Preparation, and Practical Culinary Examinations.',
+};
+
+export function getSyllabusRequirements(subject: Partial<ExamSubject>): string {
+  if (subject.syllabusRequirements) return subject.syllabusRequirements;
+  if (subject.code && SYLLABUS_REQUIREMENTS_MAP[subject.code]) {
+    return SYLLABUS_REQUIREMENTS_MAP[subject.code];
+  }
+  return `Official Cambridge IGCSE ${subject.name || 'Subject'} syllabus requiring comprehensive theory study, problem-solving, and examination component mastery across ${(subject.papers || []).length || 'required'} paper(s).`;
+}
+
 export const ALL_OCT_NOV_SUBJECTS: ExamSubject[] = RAW_SUBJECTS.map((sub) => ({
   ...sub,
   selectedPapers: [...sub.papers],
+  syllabusRequirements: SYLLABUS_REQUIREMENTS_MAP[sub.code] || `Cambridge IGCSE ${sub.name} examination syllabus.`,
 }));
 
