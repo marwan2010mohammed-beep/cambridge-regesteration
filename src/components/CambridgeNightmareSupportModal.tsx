@@ -319,17 +319,33 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
         }),
       });
 
-      const data = await res.json();
+      let data: any = null;
+      try {
+        const rawText = await res.text();
+        if (rawText) {
+          try {
+            data = JSON.parse(rawText);
+          } catch {
+            // If the server returned HTML or non-JSON string
+            data = { reply: rawText.replace(/<[^>]*>?/gm, '').trim() };
+          }
+        }
+      } catch (parseErr) {
+        console.warn('Failed to parse response stream:', parseErr);
+      }
 
-      if (!res.ok || data.error) {
-        throw new Error(data.error || 'Failed to receive response from Cambridge Nightmare Support.');
+      if (!res.ok || (data && data.error)) {
+        throw new Error(
+          (data && data.error) ||
+          `Cambridge AI Server communication error (${res.status}). Academic crisis guidance fallback engaged.`
+        );
       }
 
       const botMessageId = `bot-${Date.now()}`;
       const botMsg: ChatMessage = {
         id: botMessageId,
         role: 'model',
-        text: data.reply || 'No response generated.',
+        text: (data && data.reply) || 'No response generated.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 

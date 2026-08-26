@@ -979,124 +979,158 @@ export default function App() {
               </div>
 
               {/* Email Live Feedback Message */}
-              {email && emailValidation.isValid && !emailValidation.warning && (
-                <div className="form-validation-feedback is-valid mt-1.5 flex items-center gap-1.5 text-xs text-emerald-400">
-                  <CheckCircle2 size={12} color="#4ade80" />
-                  <span>
-                    Valid candidate email ({emailValidation.normalized})
-                    {emailValidation.isPopularProvider && (
-                      <span
-                        style={{
-                          marginLeft: '8px',
-                          color: '#60a5fa',
-                          fontSize: '11px',
-                          fontFamily: 'var(--font-mono)',
-                          background: 'rgba(96, 165, 250, 0.15)',
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                          border: '1px solid rgba(96, 165, 250, 0.3)',
-                        }}
-                      >
-                        ✓ Verified
-                      </span>
-                    )}
-                  </span>
-                </div>
-              )}
+              <AnimatePresence>
+                {email && emailValidation.isValid && !emailValidation.warning && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                    animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+                    exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                    transition={{ duration: 0.2 }}
+                    className="form-validation-feedback is-valid mt-1.5 flex items-center gap-1.5 text-xs text-emerald-400"
+                  >
+                    <CheckCircle2 size={12} color="#4ade80" />
+                    <span>
+                      Valid candidate email ({emailValidation.normalized})
+                      {emailValidation.isPopularProvider && (
+                        <span
+                          style={{
+                            marginLeft: '8px',
+                            color: '#60a5fa',
+                            fontSize: '11px',
+                            fontFamily: 'var(--font-mono)',
+                            background: 'rgba(96, 165, 250, 0.15)',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            border: '1px solid rgba(96, 165, 250, 0.3)',
+                          }}
+                        >
+                          ✓ Verified
+                        </span>
+                      )}
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Instant Checkbox when typing email */}
-              {email.length > 0 && (
-                <div
-                  style={{
-                    marginTop: '10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: '10px 14px',
-                    background: 'rgba(30, 41, 59, 0.6)',
-                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                    borderRadius: '10px',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    id="candidate-email-consent"
-                    checked={emailCheckboxChecked}
-                    onChange={(e) => setEmailCheckboxChecked(e.target.checked)}
-                    style={{
-                      width: '16px',
-                      height: '16px',
-                      accentColor: '#3b82f6',
-                      cursor: 'pointer',
-                    }}
-                  />
-                  <label
-                    htmlFor="candidate-email-consent"
-                    style={{
-                      fontSize: '12px',
-                      color: '#e2e8f0',
-                      cursor: 'pointer',
-                      userSelect: 'none',
-                      lineHeight: 1.4,
-                    }}
+              <AnimatePresence>
+                {email.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                    animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+                    exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                    transition={{ duration: 0.2 }}
                   >
-                    Send instant Cambridge Statement of Entry & examination timetable updates to <strong style={{ color: '#60a5fa' }}>{email}</strong>
-                  </label>
-                </div>
-              )}
+                    <div
+                      style={{
+                        marginTop: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '10px 14px',
+                        background: 'rgba(30, 41, 59, 0.6)',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        borderRadius: '10px',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        id="candidate-email-consent"
+                        checked={emailCheckboxChecked}
+                        onChange={(e) => setEmailCheckboxChecked(e.target.checked)}
+                        style={{
+                          width: '16px',
+                          height: '16px',
+                          accentColor: '#3b82f6',
+                          cursor: 'pointer',
+                        }}
+                      />
+                      <label
+                        htmlFor="candidate-email-consent"
+                        style={{
+                          fontSize: '12px',
+                          color: '#e2e8f0',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        Send instant Cambridge Statement of Entry & examination timetable updates to <strong style={{ color: '#60a5fa' }}>{email}</strong>
+                      </label>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              {email && emailValidation.isValid && emailValidation.warning && emailValidation.suggestion && (
-                <div
-                  style={{
-                    marginTop: '8px',
-                    padding: '10px 14px',
-                    background: 'rgba(234, 179, 8, 0.15)',
-                    border: '1px solid rgba(234, 179, 8, 0.45)',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '10px',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#fde047', flex: '1 1 200px' }}>
-                    <AlertTriangle size={16} color="#fde047" style={{ flexShrink: 0 }} />
-                    <span style={{ fontWeight: 500 }}>{emailValidation.warning}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setEmail(emailValidation.suggestion!)}
-                    style={{
-                      background: '#fde047',
-                      color: '#000000',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '6px 12px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      fontFamily: 'var(--font-mono)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      minHeight: '36px',
-                      whiteSpace: 'nowrap',
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-                    }}
+              <AnimatePresence>
+                {email && emailValidation.isValid && emailValidation.warning && emailValidation.suggestion && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                    animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+                    exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                    transition={{ duration: 0.2 }}
                   >
-                    <Sparkles size={14} color="#000" />
-                    <span>Auto-Fix Email ({emailValidation.suggestion})</span>
-                  </button>
-                </div>
-              )}
+                    <div
+                      style={{
+                        marginTop: '8px',
+                        padding: '10px 14px',
+                        background: 'rgba(234, 179, 8, 0.15)',
+                        border: '1px solid rgba(234, 179, 8, 0.45)',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '10px',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#fde047', flex: '1 1 200px' }}>
+                        <AlertTriangle size={16} color="#fde047" style={{ flexShrink: 0 }} />
+                        <span style={{ fontWeight: 500 }}>{emailValidation.warning}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEmail(emailValidation.suggestion!)}
+                        style={{
+                          background: '#fde047',
+                          color: '#000000',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          fontFamily: 'var(--font-mono)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          minHeight: '36px',
+                          whiteSpace: 'nowrap',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                        }}
+                      >
+                        <Sparkles size={14} color="#000" />
+                        <span>Auto-Fix Email ({emailValidation.suggestion})</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              {(email || emailTouched) && !emailValidation.isValid && (
-                <div className="form-validation-feedback is-invalid mt-1.5 flex items-center gap-1.5 text-xs text-rose-400">
-                  <AlertTriangle size={11} />
-                  <span>{emailValidation.error}</span>
-                </div>
-              )}
+              <AnimatePresence>
+                {(email || emailTouched) && !emailValidation.isValid && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                    animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+                    exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                    transition={{ duration: 0.2 }}
+                    className="form-validation-feedback is-invalid mt-1.5 flex items-center gap-1.5 text-xs text-rose-400"
+                  >
+                    <AlertTriangle size={11} />
+                    <span>{emailValidation.error}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Discord Username Field with Live Check & Server Link */}
@@ -1135,23 +1169,47 @@ export default function App() {
               </div>
 
               {/* Discord Live Feedback Message */}
-              {discord && discordValidation.isValid && (
-                <div className="form-validation-feedback is-valid mt-1.5 flex items-center gap-1.5 text-xs text-emerald-400">
-                  <CheckCircle2 size={11} />
-                  <span>Valid Discord handle: <strong style={{ color: '#4ade80' }}>{discordValidation.normalized}</strong> (Admins will DM this)</span>
-                </div>
-              )}
-              {(discord || discordTouched) && !discordValidation.isValid && (
-                <div className="form-validation-feedback is-invalid mt-1.5 flex items-center gap-1.5 text-xs text-rose-400">
-                  <AlertTriangle size={11} />
-                  <span>{discordValidation.error}</span>
-                </div>
-              )}
-              {!discord && !discordTouched && (
-                <div className="form-validation-feedback is-hint mt-1.5 text-xs text-slate-400">
-                  <span>Admins will DM your Discord username to confirm paper components.</span>
-                </div>
-              )}
+              <AnimatePresence>
+                {discord && discordValidation.isValid && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                    animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+                    exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                    transition={{ duration: 0.2 }}
+                    className="form-validation-feedback is-valid mt-1.5 flex items-center gap-1.5 text-xs text-emerald-400"
+                  >
+                    <CheckCircle2 size={11} />
+                    <span>Valid Discord handle: <strong style={{ color: '#4ade80' }}>{discordValidation.normalized}</strong> (Admins will DM this)</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <AnimatePresence>
+                {(discord || discordTouched) && !discordValidation.isValid && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                    animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+                    exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                    transition={{ duration: 0.2 }}
+                    className="form-validation-feedback is-invalid mt-1.5 flex items-center gap-1.5 text-xs text-rose-400"
+                  >
+                    <AlertTriangle size={11} />
+                    <span>{discordValidation.error}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <AnimatePresence>
+                {!discord && !discordTouched && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                    animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+                    exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                    transition={{ duration: 0.2 }}
+                    className="form-validation-feedback is-hint mt-1.5 text-xs text-slate-400"
+                  >
+                    <span>Admins will DM your Discord username to confirm paper components.</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
                 <div className="w-full" style={{ marginTop: '14px', marginBottom: '10px' }}>
@@ -2233,81 +2291,106 @@ export default function App() {
                         boxSizing: 'border-box',
                       }}
                     />
-                    {email && emailValidation.isValid && !emailValidation.warning && (
-                      <div className="form-validation-feedback is-valid" style={{ marginTop: '6px' }}>
-                        <CheckCircle2 size={12} color="#4ade80" />
-                        <span>
-                          Valid candidate email ({emailValidation.normalized})
-                          {emailValidation.isPopularProvider && (
-                            <span
+                    <AnimatePresence>
+                      {email && emailValidation.isValid && !emailValidation.warning && (
+                        <motion.div 
+                          initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                          animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+                          exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                          transition={{ duration: 0.2 }}
+                          className="form-validation-feedback is-valid" style={{ marginTop: '6px' }}
+                        >
+                          <CheckCircle2 size={12} color="#4ade80" />
+                          <span>
+                            Valid candidate email ({emailValidation.normalized})
+                            {emailValidation.isPopularProvider && (
+                              <span
+                                style={{
+                                  marginLeft: '8px',
+                                  color: '#60a5fa',
+                                  fontSize: '11px',
+                                  fontFamily: 'var(--font-mono)',
+                                  background: 'rgba(96, 165, 250, 0.15)',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  border: '1px solid rgba(96, 165, 250, 0.3)',
+                                }}
+                              >
+                                ✓ Provider Verified
+                              </span>
+                            )}
+                          </span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    <AnimatePresence>
+                      {email && emailValidation.isValid && emailValidation.warning && emailValidation.suggestion && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                          animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+                          exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <div
+                            style={{
+                              marginTop: '8px',
+                              padding: '10px 14px',
+                              background: 'rgba(234, 179, 8, 0.15)',
+                              border: '1px solid rgba(234, 179, 8, 0.45)',
+                              borderRadius: '8px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '10px',
+                              flexWrap: 'wrap',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#fde047', flex: '1 1 200px' }}>
+                              <AlertTriangle size={16} color="#fde047" style={{ flexShrink: 0 }} />
+                              <span style={{ fontWeight: 500 }}>{emailValidation.warning}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setEmail(emailValidation.suggestion!)}
                               style={{
-                                marginLeft: '8px',
-                                color: '#60a5fa',
-                                fontSize: '11px',
+                                background: '#fde047',
+                                color: '#000000',
+                                border: 'none',
+                                borderRadius: '6px',
+                                padding: '6px 12px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
                                 fontFamily: 'var(--font-mono)',
-                                background: 'rgba(96, 165, 250, 0.15)',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                border: '1px solid rgba(96, 165, 250, 0.3)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                minHeight: '36px',
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
                               }}
                             >
-                              ✓ Provider Verified
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                    )}
-                    {email && emailValidation.isValid && emailValidation.warning && emailValidation.suggestion && (
-                      <div
-                        style={{
-                          marginTop: '8px',
-                          padding: '10px 14px',
-                          background: 'rgba(234, 179, 8, 0.15)',
-                          border: '1px solid rgba(234, 179, 8, 0.45)',
-                          borderRadius: '8px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '10px',
-                          flexWrap: 'wrap',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#fde047', flex: '1 1 200px' }}>
-                          <AlertTriangle size={16} color="#fde047" style={{ flexShrink: 0 }} />
-                          <span style={{ fontWeight: 500 }}>{emailValidation.warning}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setEmail(emailValidation.suggestion!)}
-                          style={{
-                            background: '#fde047',
-                            color: '#000000',
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '6px 12px',
-                            fontSize: '12px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            fontFamily: 'var(--font-mono)',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            minHeight: '36px',
-                            whiteSpace: 'nowrap',
-                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-                          }}
+                              <Sparkles size={14} color="#000" />
+                              <span>Auto-Fix Email ({emailValidation.suggestion})</span>
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    <AnimatePresence>
+                      {(email || emailTouched) && !emailValidation.isValid && (
+                        <motion.div 
+                          initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                          animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+                          exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                          transition={{ duration: 0.2 }}
+                          className="form-validation-feedback is-invalid" style={{ marginTop: '4px' }}
                         >
-                          <Sparkles size={14} color="#000" />
-                          <span>Auto-Fix Email ({emailValidation.suggestion})</span>
-                        </button>
-                      </div>
-                    )}
-                    {(email || emailTouched) && !emailValidation.isValid && (
-                      <div className="form-validation-feedback is-invalid" style={{ marginTop: '4px' }}>
-                        <AlertTriangle size={11} />
-                        <span>{emailValidation.error}</span>
-                      </div>
-                    )}
+                          <AlertTriangle size={11} />
+                          <span>{emailValidation.error}</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   {/* Discord Input with Live Check */}
@@ -2339,18 +2422,34 @@ export default function App() {
                         boxSizing: 'border-box',
                       }}
                     />
-                    {discord && discordValidation.isValid && (
-                      <div className="form-validation-feedback is-valid" style={{ marginTop: '4px' }}>
-                        <CheckCircle2 size={11} />
-                        <span>Valid Discord handle: <strong style={{ color: '#4ade80' }}>{discordValidation.normalized}</strong></span>
-                      </div>
-                    )}
-                    {(discord || discordTouched) && !discordValidation.isValid && (
-                      <div className="form-validation-feedback is-invalid" style={{ marginTop: '4px' }}>
-                        <AlertTriangle size={11} />
-                        <span>{discordValidation.error}</span>
-                      </div>
-                    )}
+                    <AnimatePresence>
+                      {discord && discordValidation.isValid && (
+                        <motion.div 
+                          initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                          animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+                          exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                          transition={{ duration: 0.2 }}
+                          className="form-validation-feedback is-valid" style={{ marginTop: '4px' }}
+                        >
+                          <CheckCircle2 size={11} />
+                          <span>Valid Discord handle: <strong style={{ color: '#4ade80' }}>{discordValidation.normalized}</strong></span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    <AnimatePresence>
+                      {(discord || discordTouched) && !discordValidation.isValid && (
+                        <motion.div 
+                          initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                          animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+                          exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                          transition={{ duration: 0.2 }}
+                          className="form-validation-feedback is-invalid" style={{ marginTop: '4px' }}
+                        >
+                          <AlertTriangle size={11} />
+                          <span>{discordValidation.error}</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   <input
