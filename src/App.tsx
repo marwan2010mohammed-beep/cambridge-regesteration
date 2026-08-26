@@ -23,6 +23,7 @@ const AdminRegistryModal = lazy(() => import('./components/AdminRegistryModal'))
 const SubjectCatalogModal = lazy(() => import('./components/SubjectCatalogModal'));
 const ExamScheduleVisualizer = lazy(() => import('./components/ExamScheduleVisualizer'));
 const CambridgeNightmareSupportModal = lazy(() => import('./components/CambridgeNightmareSupportModal'));
+const CalendarShowcaseModal = lazy(() => import('./components/CalendarShowcaseModal'));
 
 export const DISCORD_INVITE_URL = 'https://discord.gg/YD3hR9Sn54';
 
@@ -133,6 +134,7 @@ export default function App() {
   // Live input touch / interaction state for validation styling
   const [emailTouched, setEmailTouched] = useState(false);
   const [discordTouched, setDiscordTouched] = useState(false);
+  const [emailCheckboxChecked, setEmailCheckboxChecked] = useState(true);
 
   // Loading animation state with Uiverse.io bouncing circles loader
   const [isProcessingAction, setIsProcessingAction] = useState(false);
@@ -999,6 +1001,47 @@ export default function App() {
                       </span>
                     )}
                   </span>
+                </div>
+              )}
+
+              {/* Instant Checkbox when typing email */}
+              {email.length > 0 && (
+                <div
+                  style={{
+                    marginTop: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '10px 14px',
+                    background: 'rgba(30, 41, 59, 0.6)',
+                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                    borderRadius: '10px',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    id="candidate-email-consent"
+                    checked={emailCheckboxChecked}
+                    onChange={(e) => setEmailCheckboxChecked(e.target.checked)}
+                    style={{
+                      width: '16px',
+                      height: '16px',
+                      accentColor: '#3b82f6',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <label
+                    htmlFor="candidate-email-consent"
+                    style={{
+                      fontSize: '12px',
+                      color: '#e2e8f0',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    Send instant Cambridge Statement of Entry & examination timetable updates to <strong style={{ color: '#60a5fa' }}>{email}</strong>
+                  </label>
                 </div>
               )}
 
@@ -2510,23 +2553,35 @@ export default function App() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <UiverseButton
-                    type="button"
-                    variant="default"
-                    size="sm"
-                    style={{ flex: 1 }}
-                    onClick={() => {
-                      setActiveModal('portal');
-                    }}
-                  >
-                    View My Timetable
-                  </UiverseButton>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <UiverseButton
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      style={{ flex: 1, background: 'rgba(59, 130, 246, 0.25)', borderColor: 'rgba(96, 165, 250, 0.5)', color: '#60a5fa' }}
+                      icon={<Calendar size={14} color="#60a5fa" />}
+                      onClick={() => setActiveModal('calendar')}
+                    >
+                      shadcn Calendar & Layouts
+                    </UiverseButton>
+                    <UiverseButton
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      style={{ flex: 1 }}
+                      onClick={() => {
+                        setActiveModal('portal');
+                      }}
+                    >
+                      View My Timetable
+                    </UiverseButton>
+                  </div>
                   <UiverseButton
                     type="button"
                     variant="ghost"
                     size="sm"
-                    style={{ flex: 1 }}
+                    fullWidth
                     onClick={() => setActiveModal(null)}
                   >
                     Close
@@ -3118,6 +3173,14 @@ export default function App() {
           />
         </Suspense>
       )}
+
+      {/* Calendar Component Showcase Modal */}
+      <Suspense fallback={null}>
+        <CalendarShowcaseModal
+          isOpen={activeModal === 'calendar'}
+          onClose={() => setActiveModal(null)}
+        />
+      </Suspense>
 
       {/* Floating Cambridge Nightmare Support AI Desk Button */}
       <div

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Markdown from 'react-markdown';
+import { motion } from 'motion/react';
 import {
   Bot,
   User,
@@ -1399,9 +1400,11 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
             >
               {/* Attachment Buttons */}
               <div style={{ display: 'flex', gap: '4px', paddingBottom: '2px' }}>
-                <button
+                <motion.button
                   type="button"
                   id="nightmare-photo-attach-btn"
+                  whileTap={{ scale: 0.9, rotate: [-4, 4, 0] }}
+                  whileHover={{ scale: 1.05, backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: 'rgba(96, 165, 250, 0.5)', color: '#60a5fa' }}
                   onClick={() => imageInputRef.current?.click()}
                   disabled={isLoading}
                   style={{
@@ -1415,16 +1418,18 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
                     justifyContent: 'center',
                     color: '#93c5fd',
                     cursor: isLoading ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.2s ease',
+                    outline: 'none',
                   }}
                   title="Attach question photo or diagram (PNG, JPG, WebP)"
                 >
                   <ImageIcon size={15} />
-                </button>
+                </motion.button>
 
-                <button
+                <motion.button
                   type="button"
                   id="nightmare-file-attach-btn"
+                  whileTap={{ scale: 0.9, rotate: [-4, 4, 0] }}
+                  whileHover={{ scale: 1.05, backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: 'rgba(96, 165, 250, 0.5)', color: '#60a5fa' }}
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isLoading}
                   style={{
@@ -1438,12 +1443,12 @@ export const CambridgeNightmareSupportModal: React.FC<CambridgeNightmareSupportM
                     justifyContent: 'center',
                     color: '#cbd5e1',
                     cursor: isLoading ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.2s ease',
+                    outline: 'none',
                   }}
                   title="Attach past paper PDF or notes"
                 >
                   <Paperclip size={15} />
-                </button>
+                </motion.button>
               </div>
 
               <textarea
