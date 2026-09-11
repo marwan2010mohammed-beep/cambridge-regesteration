@@ -2363,51 +2363,6 @@ export default function App() {
               </div>
             )}
 
-            {/* Modal Body: Candidate Portal */}
-            {activeModal === 'portal' && (
-              <div>
-                <p style={{ fontSize: '13px', color: 'var(--text-dim)', lineHeight: 1.6, marginBottom: '18px' }}>
-                  {feedbackMessage || 'Candidate Portal Status'}
-                </p>
-                <div
-                  style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid var(--line)',
-                    padding: '14px',
-                    marginBottom: '20px',
-                    fontSize: '12px',
-                    lineHeight: 1.6,
-                  }}
-                >
-                  <div style={{ color: 'var(--text-dim)', marginBottom: '4px' }}>SERIES: <span style={{ color: '#fff' }}>OCTOBER / NOVEMBER 2026</span></div>
-                  <div style={{ color: 'var(--text-dim)', marginBottom: '4px' }}>EXAM BOARD: <span style={{ color: '#fff' }}>CAMBRIDGE ASSESSMENT (CIE)</span></div>
-                  <div style={{ color: 'var(--text-dim)', marginBottom: '4px' }}>CANDIDATE EMAIL: <span style={{ color: '#fff' }}>{email || 'Not Provided'}</span></div>
-                  <div style={{ color: 'var(--text-dim)', marginBottom: '4px' }}>DISCORD CONTACT: <span style={{ color: '#fff' }}>{discord || 'Not Provided'}</span></div>
-                  <div style={{ color: 'var(--text-dim)' }}>ENROLLED SUBJECTS: <span style={{ color: '#fff' }}>{selectedCount} Selected</span></div>
-                </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <UiverseButton
-                    type="button"
-                    variant="default"
-                    size="sm"
-                    style={{ flex: 1 }}
-                    onClick={() => setActiveModal('papers')}
-                  >
-                    Manage Papers
-                  </UiverseButton>
-                  <UiverseButton
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    style={{ flex: 1 }}
-                    onClick={() => setActiveModal(null)}
-                  >
-                    Close
-                  </UiverseButton>
-                </div>
-              </div>
-            )}
-
             {/* Modal Body: Invite Key */}
             {activeModal === 'invite' && (
               <form onSubmit={handleInviteSubmit}>
