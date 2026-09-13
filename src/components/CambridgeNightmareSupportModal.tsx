@@ -509,7 +509,7 @@ const LOADING_STATUS_STEPS = [
   'Formulating step-by-step guidance & exam tips...',
 ];
 
-function generateClientCambridgeAcademicResponse(
+export function generateClientCambridgeAcademicResponse(
   query: string,
   context?: any,
   attachments?: ChatAttachment[],

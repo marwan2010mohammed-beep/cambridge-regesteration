@@ -946,6 +946,20 @@ export default function App() {
 
                 const changeStep = (target: 1 | 2 | 3) => {
                   if (target === wizardStep) return;
+                  // If moving forward from Step 1, ensure email and discord validation pass
+                  if (wizardStep === 1 && target > 1) {
+                    setEmailTouched(true);
+                    setDiscordTouched(true);
+                    if (!emailValidation.isValid || !discordValidation.isValid) {
+                      triggerInputShake();
+                      return;
+                    }
+                  }
+                  // If attempting to jump to Step 3 without selecting any subjects
+                  if (target === 3 && selectedCount === 0) {
+                    triggerInputShake();
+                    return;
+                  }
                   setStepDirection(target > wizardStep ? 1 : -1);
                   setWizardStep(target);
                 };
@@ -1628,6 +1642,85 @@ export default function App() {
                 </div>
               )}
 
+              {/* Empty Search State when query yields 0 subjects */}
+              {isInlineDropdownOpen && inlineSubjectSearch.trim().length > 0 && inlineSearchResults.length === 0 && (
+                <div
+                  className="subject-search-dropdown"
+                  role="region"
+                  aria-label="No search results"
+                  style={{
+                    padding: '16px 14px',
+                    textAlign: 'center',
+                    background: 'rgba(15, 23, 42, 0.98)',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                  }}
+                >
+                  <div
+                    style={{
+                      color: '#f87171',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      marginBottom: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <AlertTriangle size={14} color="#f87171" />
+                    <span>No subjects matching "{inlineSubjectSearch.trim()}"</span>
+                  </div>
+                  <p
+                    style={{
+                      color: 'var(--text-dim)',
+                      fontSize: '11px',
+                      lineHeight: 1.4,
+                      marginBottom: '12px',
+                    }}
+                  >
+                    Search by 4-digit code (e.g. 0580, 0620, 0478) or subject name (e.g. Mathematics, Chemistry, Arabic).
+                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInlineSubjectSearch('');
+                        setIsInlineDropdownOpen(false);
+                      }}
+                      style={{
+                        background: 'rgba(255,255,255,0.06)',
+                        border: '1px solid var(--line)',
+                        color: '#ffffff',
+                        padding: '4px 10px',
+                        fontSize: '11px',
+                        fontFamily: 'var(--font-mono)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Clear Search
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsInlineDropdownOpen(false);
+                        setActiveModal('papers');
+                      }}
+                      style={{
+                        background: 'rgba(96, 165, 250, 0.2)',
+                        border: '1px solid #60a5fa',
+                        color: '#60a5fa',
+                        padding: '4px 10px',
+                        fontSize: '11px',
+                        fontFamily: 'var(--font-mono)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Browse All 42+ Subjects ↗
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Selected Subjects Chips List */}
               {selectedCount > 0 && (
                 <div className="subject-chips-list" aria-label="Selected examination subjects">
@@ -1672,7 +1765,8 @@ export default function App() {
                         setStepDirection(1);
                         setWizardStep(3);
                       } else {
-                        alert('Please select at least 1 subject to continue.');
+                        triggerInputShake();
+                        setFeedbackMessage('Please select at least 1 Cambridge examination subject before reviewing timetable.');
                       }
                     }}
                   >
@@ -1712,7 +1806,48 @@ export default function App() {
             </button>
 
             {/* Interactive Subject Chips with Hover-Activated Syllabus Tooltips */}
-            {selectedCount > 0 && (
+            {selectedCount === 0 ? (
+              <div
+                style={{
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px dashed rgba(239, 68, 68, 0.35)',
+                  padding: '16px',
+                  marginTop: '10px',
+                  marginBottom: '14px',
+                  textAlign: 'center',
+                  fontFamily: 'var(--font-mono)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#f87171', fontWeight: 600, fontSize: '13px', marginBottom: '4px' }}>
+                  <AlertTriangle size={15} />
+                  <span>No examination subjects currently selected</span>
+                </div>
+                <p style={{ color: 'var(--text-dim)', fontSize: '11px', marginBottom: '12px' }}>
+                  You must select at least one Cambridge examination syllabus before confirming candidate registration.
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <UiverseButton
+                    type="button"
+                    variant="cyan"
+                    size="xs"
+                    onClick={() => {
+                      setStepDirection(-1);
+                      setWizardStep(2);
+                    }}
+                  >
+                    ← Select Subjects in Step 2
+                  </UiverseButton>
+                  <UiverseButton
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => setActiveModal('papers')}
+                  >
+                    Browse Syllabus Catalog ↗
+                  </UiverseButton>
+                </div>
+              </div>
+            ) : (
               <div style={{ marginTop: '10px', marginBottom: '14px' }}>
                 <div
                   style={{

@@ -310,3 +310,155 @@ export function validateDiscordHandle(discord: string): ValidationResult {
     normalized: `@${withoutAt}`,
   };
 }
+
+/**
+ * Validates candidate legal full name (optional field, but if provided, must meet formatting rules)
+ */
+export function validateCandidateName(name: string): ValidationResult {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return {
+      isValid: true,
+      normalized: '',
+    };
+  }
+
+  if (trimmed.length < 2) {
+    return {
+      isValid: false,
+      error: 'Candidate full name must be at least 2 characters long.',
+      normalized: trimmed,
+    };
+  }
+
+  if (trimmed.length > 80) {
+    return {
+      isValid: false,
+      error: 'Candidate full name cannot exceed 80 characters.',
+      normalized: trimmed.slice(0, 80),
+    };
+  }
+
+  // Check for disallowed symbols (allow letters, spaces, hyphens, apostrophes, and periods)
+  const nameRegex = /^[a-zA-Z\u00C0-\u024F\u0600-\u06FF\s.'-]+$/;
+  if (!nameRegex.test(trimmed)) {
+    return {
+      isValid: false,
+      error: 'Candidate name contains invalid symbols. Only letters, spaces, hyphens, and apostrophes are accepted.',
+      normalized: trimmed,
+    };
+  }
+
+  return {
+    isValid: true,
+    normalized: trimmed,
+  };
+}
+
+/**
+ * Validates Cambridge Center Number (e.g. EG042, GB100, PK555)
+ */
+export function validateCenterNumber(center: string): ValidationResult {
+  const trimmed = center.trim().toUpperCase();
+  if (!trimmed) {
+    return {
+      isValid: true,
+      normalized: 'EG042',
+    };
+  }
+
+  // Cambridge center numbers are typically 5 alphanumeric characters (2-letter country code + 3 digits/chars)
+  const centerRegex = /^[A-Z]{2}[0-9A-Z]{3}$/;
+  if (!centerRegex.test(trimmed)) {
+    return {
+      isValid: false,
+      error: 'Center number must be 5 alphanumeric characters (e.g. EG042, GB100).',
+      normalized: trimmed,
+    };
+  }
+
+  return {
+    isValid: true,
+    normalized: trimmed,
+  };
+}
+
+/**
+ * Unified registration form payload validation for negative-path resilience testing
+ */
+export function validateRegistrationPayload(payload: {
+  email: string;
+  discord: string;
+  candidateName?: string;
+  centerNumber?: string;
+  selectedSubjectsCount: number;
+  existingEnrollments?: { email: string; discord: string }[];
+}): {
+  isValid: boolean;
+  errors: {
+    email?: string;
+    discord?: string;
+    candidateName?: string;
+    centerNumber?: string;
+    subjects?: string;
+    duplicate?: string;
+  };
+  warnings?: {
+    email?: string;
+  };
+} {
+  const errors: Record<string, string> = {};
+  const warnings: Record<string, string> = {};
+
+  const emailVal = validateEmail(payload.email);
+  if (!emailVal.isValid) {
+    errors.email = emailVal.error || 'Invalid email address.';
+  } else if (emailVal.warning) {
+    warnings.email = emailVal.warning;
+  }
+
+  const discordVal = validateDiscordHandle(payload.discord);
+  if (!discordVal.isValid) {
+    errors.discord = discordVal.error || 'Invalid Discord handle.';
+  }
+
+  if (payload.candidateName) {
+    const nameVal = validateCandidateName(payload.candidateName);
+    if (!nameVal.isValid && nameVal.error) {
+      errors.candidateName = nameVal.error;
+    }
+  }
+
+  if (payload.centerNumber) {
+    const centerVal = validateCenterNumber(payload.centerNumber);
+    if (!centerVal.isValid && centerVal.error) {
+      errors.centerNumber = centerVal.error;
+    }
+  }
+
+  if (payload.selectedSubjectsCount <= 0) {
+    errors.subjects = 'At least 1 Cambridge examination subject must be selected.';
+  }
+
+  if (payload.existingEnrollments && payload.existingEnrollments.length > 0) {
+    const normalizedEmail = (emailVal.normalized || payload.email).toLowerCase();
+    const normalizedDiscord = (discordVal.normalized || payload.discord).toLowerCase();
+
+    const isDuplicate = payload.existingEnrollments.some(
+      (e) =>
+        e.email.toLowerCase() === normalizedEmail ||
+        e.discord.toLowerCase() === normalizedDiscord
+    );
+
+    if (isDuplicate) {
+      errors.duplicate = 'An enrollment record already exists for this email address or Discord username.';
+    }
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+    warnings: Object.keys(warnings).length > 0 ? warnings : undefined,
+  };
+}
+

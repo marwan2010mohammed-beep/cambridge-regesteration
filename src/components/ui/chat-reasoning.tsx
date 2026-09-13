@@ -5,8 +5,17 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
-import { UIDataTypes, UIMessagePart, UITools } from "ai";
 import React from "react";
+
+export interface UIMessagePart {
+  type: string;
+  text?: string;
+  toolCallId?: string;
+  state?: string;
+  input?: any;
+  output?: any;
+  [key: string]: any;
+}
 
 export default function ChatReasoning({
   partsInAccordion,
@@ -14,10 +23,10 @@ export default function ChatReasoning({
   renderMessagePart,
   className,
 }: {
-  partsInAccordion: UIMessagePart<UIDataTypes, UITools>[];
+  partsInAccordion: UIMessagePart[];
   defaultValue?: string;
   renderMessagePart: (
-    part: UIMessagePart<UIDataTypes, UITools>,
+    part: UIMessagePart,
     key: string | number,
   ) => React.ReactNode;
   className?: string;

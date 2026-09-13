@@ -1,30 +1,29 @@
 "use client";
 
 import * as React from "react";
-import ChatReasoning from "@/components/ui/chat-reasoning";
-import type { UIDataTypes, UIMessagePart, UITools } from "ai";
+import ChatReasoning, { type UIMessagePart } from "@/components/ui/chat-reasoning";
 import { Check } from "lucide-react";
 
-const parts: UIMessagePart<UIDataTypes, UITools>[] = [
+const parts: UIMessagePart[] = [
   {
     type: "reasoning",
     text: "The user is asking for the sum of the first six positive even numbers.",
-  } as UIMessagePart<UIDataTypes, UITools>,
+  },
   {
     type: "tool-calculator",
     toolCallId: "call_1",
     state: "output-available",
     input: { numbers: [2, 4, 6, 8, 10, 12] },
     output: 42,
-  } as unknown as UIMessagePart<UIDataTypes, UITools>,
+  },
   {
     type: "reasoning",
     text: "The calculator tool returned the answer 42. Let me return the answer to the user.",
-  } as UIMessagePart<UIDataTypes, UITools>,
+  },
 ];
 
 function renderMessagePart(
-  part: UIMessagePart<UIDataTypes, UITools>,
+  part: UIMessagePart,
   key: string | number,
 ) {
   if (part.type === "reasoning") {

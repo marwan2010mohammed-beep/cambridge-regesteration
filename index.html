@@ -5,6 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cambridge IGCSE — Oct/Nov Series Registration Portal</title>
     <meta name="description" content="Official Cambridge IGCSE Oct/Nov Examination Registration and Papers Portal" />
+    <script>
+      (function() {
+        try {
+          var defineSafeFetch = function(target) {
+            if (!target) return false;
+            try {
+              var desc = Object.getOwnPropertyDescriptor(target, 'fetch');
+              if (desc && desc.get && !desc.set) {
+                var currentFetch = window.fetch;
+                Object.defineProperty(target, 'fetch', {
+                  get: function() {
+                    return currentFetch || (desc.get ? desc.get.call(this) : undefined);
+                  },
+                  set: function(newFetch) {
+                    currentFetch = newFetch;
+                  },
+                  configurable: true,
+                  enumerable: desc.enumerable !== false,
+                });
+                return true;
+              }
+            } catch (e) {
+              return false;
+            }
+            return false;
+          };
+
+          if (!defineSafeFetch(window)) {
+            try {
+              defineSafeFetch(Object.getPrototypeOf(window)) ||
+              (window.constructor && defineSafeFetch(window.constructor.prototype));
+            } catch (protoErr) {}
+          }
+        } catch (err) {}
+
+        // Global unhandled error guard for iframe environments where window.fetch is read-only
+        window.addEventListener('error', function(event) {
+          if (event && event.message && event.message.indexOf('fetch') !== -1 && event.message.indexOf('only a getter') !== -1) {
+            if (typeof event.preventDefault === 'function') {
+              event.preventDefault();
+            }
+            if (typeof event.stopImmediatePropagation === 'function') {
+              event.stopImmediatePropagation();
+            }
+            return true;
+          }
+        }, true);
+      })();
+    </script>
     <link rel="preconnect" href="https://d8j0ntlcm91z4.cloudfront.net" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
